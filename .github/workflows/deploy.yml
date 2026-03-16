@@ -1,0 +1,161 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SERVER_IP: ${{ secrets.SERVER_IP }}
+      DEPLOY_PATH: ~/chemreg
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+      DOCKER_COMPOSE_FILE: docker-compose.yaml
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Make gradlew executable
+        working-directory: backend
+        run: chmod +x gradlew
+
+      - name: Build backend
+        working-directory: backend
+        run: ./gradlew build -x test
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Set up SSH key
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+
+          if [ -z "$SERVER_IP" ]; then
+            echo "SERVER_IP is empty"
+            exit 1
+          fi
+
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "SSH_PRIVATE_KEY is empty"
+            exit 1
+          fi
+
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          echo "Checking SSH port on $SERVER_IP"
+          timeout 10 bash -c "</dev/tcp/$SERVER_IP/22" && echo "Port 22 reachable" || (echo "Port 22 not reachable"; exit 1)
+
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
+
+      - name: Create .env from secret
+        run: |
+          printf '%s\n' "$ENV_FILE" > .env
+
+      - name: Create deployment package
+        run: |
+          tar czf deployment.tar.gz \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/build' \
+            --exclude='backend/build' \
+            --exclude='.git' \
+            --exclude='.github' \
+            backend \
+            frontend \
+            docker-compose.yaml \
+            .env
+
+      - name: Show package size
+        run: |
+          ls -lh deployment.tar.gz
+          du -h deployment.tar.gz
+
+      - name: Test SSH connection
+        run: |
+          time ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$SSH_USER@$SERVER_IP" "echo SSH OK"
+
+      - name: Copy deployment package to server
+        run: |
+          set -e
+
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$SSH_USER@$SERVER_IP" "mkdir -p $DEPLOY_PATH"
+
+          echo "Uploading deployment package..."
+          time scp -v \
+            -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            deployment.tar.gz \
+            "$SSH_USER@$SERVER_IP:$DEPLOY_PATH/"
+
+          echo "Remote package size:"
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SERVER_IP" "ls -lh $DEPLOY_PATH/deployment.tar.gz"
+
+      - name: Deploy on server
+        run: |
+          ssh -tt -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SERVER_IP" "
+              set -e
+              mkdir -p $DEPLOY_PATH
+              cd $DEPLOY_PATH
+
+              echo 'Current directory:'
+              pwd
+              ls -lh
+
+              echo 'Extracting archive...'
+              tar xzf deployment.tar.gz
+              rm -f deployment.tar.gz
+
+              echo 'After extract:'
+              ls -lh
+
+              if [ ! -f '$DOCKER_COMPOSE_FILE' ]; then
+                echo 'ERROR: $DOCKER_COMPOSE_FILE not found!'
+                exit 1
+              fi
+
+              echo 'Stopping containers...'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' down || true
+
+              echo 'Building containers...'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' build 
+
+              echo 'Starting containers...'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' up -d
+
+              echo 'Deployment complete!'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' ps
+            "
+#borsibaar down
