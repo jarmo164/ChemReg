@@ -84,7 +84,12 @@ jobs:
             
       - name: Show deployment package size
         run: ls -lh deployment.tar.gz
-        
+      - name: Test SSH connection
+        run: |
+          ssh -v -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$SSH_USER@$SERVER_IP" "echo SSH OK"  
       - name: Copy deployment package to server
         run: |
           scp -i ~/.ssh/id_rsa \
