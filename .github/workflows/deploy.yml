@@ -14,7 +14,7 @@ jobs:
       SERVER_IP: ${{ secrets.SERVER_IP }}
       DEPLOY_PATH: ~/chemreg
       ENV_FILE: ${{ secrets.ENV_FILE }}
-      DOCKER_COMPOSE_FILE: docker-compose.yml
+      DOCKER_COMPOSE_FILE: docker-compose.yaml
 
     steps:
       - name: Checkout code
