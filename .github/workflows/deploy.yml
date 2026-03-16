@@ -51,23 +51,23 @@ jobs:
         run: |
           set -e
           mkdir -p ~/.ssh
-      
+
           if [ -z "$SERVER_IP" ]; then
             echo "SERVER_IP is empty"
             exit 1
           fi
-      
+
           if [ -z "$SSH_PRIVATE_KEY" ]; then
             echo "SSH_PRIVATE_KEY is empty"
             exit 1
           fi
-      
+
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-      
+
           echo "Checking SSH port on $SERVER_IP"
           timeout 10 bash -c "</dev/tcp/$SERVER_IP/22" && echo "Port 22 reachable" || (echo "Port 22 not reachable"; exit 1)
-      
+
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
 
       - name: Create .env from secret
@@ -77,44 +77,28 @@ jobs:
       - name: Create deployment package
         run: |
           tar czf deployment.tar.gz \
-            backend/ \
-            frontend/ \
+            --exclude='frontend/node_modules' \
+            --exclude='frontend/build' \
+            --exclude='backend/build' \
+            --exclude='.git' \
+            --exclude='.github' \
+            backend \
+            frontend \
             docker-compose.yaml \
             .env
-            
-      - name: Show deployment package size
-        run: ls -lh deployment.tar.gz
-      - name: Test SSH connection
-        run: |
-          ssh -v -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=yes \
-            -o ConnectTimeout=15 \
-            "$SSH_USER@$SERVER_IP" "echo SSH OK"  
+
       - name: Show package size
         run: |
           ls -lh deployment.tar.gz
           du -h deployment.tar.gz
 
-      - name: Test SSH latency
+      - name: Test SSH connection
         run: |
           time ssh -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=15 \
             "$SSH_USER@$SERVER_IP" "echo SSH OK"
 
-      - name: Test upload speed with small file
-        run: |
-          dd if=/dev/zero of=test-10mb.bin bs=1M count=10
-          time scp -v -C \
-            -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=yes \
-            -o ConnectTimeout=15 \
-            test-10mb.bin \
-            "$SSH_USER@$SERVER_IP:$DEPLOY_PATH/"
-          ssh -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SERVER_IP" "rm -f $DEPLOY_PATH/test-10mb.bin"
-            
       - name: Copy deployment package to server
         run: |
           set -e
@@ -124,24 +108,8 @@ jobs:
             -o ConnectTimeout=15 \
             "$SSH_USER@$SERVER_IP" "mkdir -p $DEPLOY_PATH"
 
-          echo "Local package size:"
-          ls -lh deployment.tar.gz
-          du -h deployment.tar.gz
-
-          echo "Testing upload with 10 MB file..."
-          dd if=/dev/zero of=test-10mb.bin bs=1M count=10
-          time scp -v -C \
-            -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=yes \
-            -o ConnectTimeout=15 \
-            test-10mb.bin \
-            "$SSH_USER@$SERVER_IP:$DEPLOY_PATH/"
-          ssh -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SERVER_IP" "rm -f $DEPLOY_PATH/test-10mb.bin"
-
           echo "Uploading deployment package..."
-          time scp -v -C \
+          time scp -v \
             -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=15 \
@@ -155,27 +123,38 @@ jobs:
 
       - name: Deploy on server
         run: |
-          ssh -i ~/.ssh/id_rsa \
+          ssh -tt -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$SERVER_IP" << EOF
-          set -e
+            "$SSH_USER@$SERVER_IP" "
+              set -e
+              mkdir -p $DEPLOY_PATH
+              cd $DEPLOY_PATH
 
-          mkdir -p $DEPLOY_PATH
-          cd $DEPLOY_PATH
+              echo 'Current directory:'
+              pwd
+              ls -lh
 
-          tar xzf /tmp/deployment.tar.gz
-          rm /tmp/deployment.tar.gz
+              echo 'Extracting archive...'
+              tar xzf deployment.tar.gz
+              rm -f deployment.tar.gz
 
-          if [ ! -f "$DOCKER_COMPOSE_FILE" ]; then
-            echo "ERROR: $DOCKER_COMPOSE_FILE not found!"
-            exit 1
-          fi
+              echo 'After extract:'
+              ls -lh
 
-          docker compose -f "$DOCKER_COMPOSE_FILE" down || true
-          docker compose -f "$DOCKER_COMPOSE_FILE" build --no-cache
-          docker compose -f "$DOCKER_COMPOSE_FILE" up -d
+              if [ ! -f '$DOCKER_COMPOSE_FILE' ]; then
+                echo 'ERROR: $DOCKER_COMPOSE_FILE not found!'
+                exit 1
+              fi
 
-          echo "Deployment complete!"
-          docker compose -f "$DOCKER_COMPOSE_FILE" ps
-          EOF
-#new secrets
+              echo 'Stopping containers...'
+              docker compose -f '$DOCKER_COMPOSE_FILE' down || true
+
+              echo 'Building containers...'
+              docker compose -f '$DOCKER_COMPOSE_FILE' build --no-cache
+
+              echo 'Starting containers...'
+              docker compose -f '$DOCKER_COMPOSE_FILE' up -d
+
+              echo 'Deployment complete!'
+              docker compose -f '$DOCKER_COMPOSE_FILE' ps
+            "
