@@ -81,7 +81,10 @@ jobs:
             frontend/ \
             docker-compose.yaml \
             .env
-
+            
+      - name: Show deployment package size
+        run: ls -lh deployment.tar.gz
+        
       - name: Copy deployment package to server
         run: |
           scp -i ~/.ssh/id_rsa \
