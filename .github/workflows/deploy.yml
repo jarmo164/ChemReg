@@ -121,40 +121,40 @@ jobs:
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SERVER_IP" "ls -lh $DEPLOY_PATH/deployment.tar.gz"
 
-          - name: Deploy on server
-            run: |
-              ssh -tt -i ~/.ssh/id_rsa \
-                -o StrictHostKeyChecking=yes \
-                "$SSH_USER@$SERVER_IP" "
-                  set -e
-                  mkdir -p $DEPLOY_PATH
-                  cd $DEPLOY_PATH
-          
-                  echo 'Current directory:'
-                  pwd
-                  ls -lh
-          
-                  echo 'Extracting archive...'
-                  tar xzf deployment.tar.gz
-                  rm -f deployment.tar.gz
-          
-                  echo 'After extract:'
-                  ls -lh
-          
-                  if [ ! -f '$DOCKER_COMPOSE_FILE' ]; then
-                    echo 'ERROR: $DOCKER_COMPOSE_FILE not found!'
-                    exit 1
-                  fi
-          
-                  echo 'Stopping containers...'
-                  docker-compose -f '$DOCKER_COMPOSE_FILE' down || true
-          
-                  echo 'Building containers...'
-                  docker-compose -f '$DOCKER_COMPOSE_FILE' build --no-cache
-          
-                  echo 'Starting containers...'
-                  docker-compose -f '$DOCKER_COMPOSE_FILE' up -d
-          
-                  echo 'Deployment complete!'
-                  docker-compose -f '$DOCKER_COMPOSE_FILE' ps
-                "
+      - name: Deploy on server
+        run: |
+          ssh -tt -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SERVER_IP" "
+              set -e
+              mkdir -p $DEPLOY_PATH
+              cd $DEPLOY_PATH
+
+              echo 'Current directory:'
+              pwd
+              ls -lh
+
+              echo 'Extracting archive...'
+              tar xzf deployment.tar.gz
+              rm -f deployment.tar.gz
+
+              echo 'After extract:'
+              ls -lh
+
+              if [ ! -f '$DOCKER_COMPOSE_FILE' ]; then
+                echo 'ERROR: $DOCKER_COMPOSE_FILE not found!'
+                exit 1
+              fi
+
+              echo 'Stopping containers...'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' down || true
+
+              echo 'Building containers...'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' build --no-cache
+
+              echo 'Starting containers...'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' up -d
+
+              echo 'Deployment complete!'
+              docker-compose -f '$DOCKER_COMPOSE_FILE' ps
+            "
