@@ -79,7 +79,7 @@ jobs:
           tar czf deployment.tar.gz \
             backend/ \
             frontend/ \
-            docker-compose.yml \
+            docker-compose.yaml \
             .env
 
       - name: Copy deployment package to server
