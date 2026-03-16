@@ -114,3 +114,4 @@ jobs:
           echo "Deployment complete!"
           docker compose -f "$DOCKER_COMPOSE_FILE" ps
           EOF
+#new secrets
