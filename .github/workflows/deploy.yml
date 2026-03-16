@@ -150,7 +150,7 @@ jobs:
               docker-compose -f '$DOCKER_COMPOSE_FILE' down || true
 
               echo 'Building containers...'
-              docker-compose -f '$DOCKER_COMPOSE_FILE' build --no-cache
+              docker-compose -f '$DOCKER_COMPOSE_FILE' build 
 
               echo 'Starting containers...'
               docker-compose -f '$DOCKER_COMPOSE_FILE' up -d
