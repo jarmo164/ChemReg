@@ -90,18 +90,65 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=15 \
             "$SSH_USER@$SERVER_IP" "echo SSH OK"  
+      - name: Show package size
+        run: |
+          ls -lh deployment.tar.gz
+          du -h deployment.tar.gz
+
+      - name: Test SSH latency
+        run: |
+          time ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$SSH_USER@$SERVER_IP" "echo SSH OK"
+
+      - name: Test upload speed with small file
+        run: |
+          dd if=/dev/zero of=test-10mb.bin bs=1M count=10
+          time scp -v -C \
+            -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            test-10mb.bin \
+            "$SSH_USER@$SERVER_IP:$DEPLOY_PATH/"
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SERVER_IP" "rm -f $DEPLOY_PATH/test-10mb.bin"
             
       - name: Copy deployment package to server
         run: |
+          set -e
+
           ssh -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
             "$SSH_USER@$SERVER_IP" "mkdir -p $DEPLOY_PATH"
 
-          scp -i ~/.ssh/id_rsa \
+          echo "Local package size:"
+          ls -lh deployment.tar.gz
+          du -h deployment.tar.gz
+
+          echo "Testing upload with 10 MB file..."
+          dd if=/dev/zero of=test-10mb.bin bs=1M count=10
+          time scp -v -C \
+            -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            test-10mb.bin \
+            "$SSH_USER@$SERVER_IP:$DEPLOY_PATH/"
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SERVER_IP" "rm -f $DEPLOY_PATH/test-10mb.bin"
+
+          echo "Uploading deployment package..."
+          time scp -v -C \
+            -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
             deployment.tar.gz \
             "$SSH_USER@$SERVER_IP:$DEPLOY_PATH/"
 
+          echo "Remote package size:"
           ssh -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
             "$SSH_USER@$SERVER_IP" "ls -lh $DEPLOY_PATH/deployment.tar.gz"
