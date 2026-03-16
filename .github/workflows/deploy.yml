@@ -49,10 +49,26 @@ jobs:
 
       - name: Set up SSH key
         run: |
+          set -e
           mkdir -p ~/.ssh
+      
+          if [ -z "$SERVER_IP" ]; then
+            echo "SERVER_IP is empty"
+            exit 1
+          fi
+      
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "SSH_PRIVATE_KEY is empty"
+            exit 1
+          fi
+      
           echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan "$SERVER_IP" >> ~/.ssh/known_hosts
+      
+          echo "Checking SSH port on $SERVER_IP"
+          timeout 10 bash -c "</dev/tcp/$SERVER_IP/22" && echo "Port 22 reachable" || (echo "Port 22 not reachable"; exit 1)
+      
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
 
       - name: Create .env from secret
         run: |
