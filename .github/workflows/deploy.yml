@@ -159,3 +159,4 @@ jobs:
               docker-compose -f '$DOCKER_COMPOSE_FILE' ps
             "
 #borsibaar down
+#fsa
