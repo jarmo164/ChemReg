@@ -78,8 +78,6 @@ jobs:
         run: |
           tar czf deployment.tar.gz \
             --exclude='frontend/node_modules' \
-            --exclude='frontend/build' \
-            --exclude='backend/build' \
             --exclude='.git' \
             --exclude='.github' \
             backend \
