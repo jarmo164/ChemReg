@@ -1,4 +1,4 @@
-package com.chemreg.ChemReg;
+package com.chemreg.chemreg;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

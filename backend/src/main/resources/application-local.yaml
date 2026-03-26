@@ -1,8 +1,13 @@
 spring:
   datasource:
-    url: jdbc:postgresql://db:5432/chemreg
+    url: jdbc:postgresql://localhost:5432/chemreg
     username: chemreg_user
     password: chemreg_password
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
 
   flyway:
     enabled: true
@@ -11,3 +16,13 @@ spring:
 logging:
   level:
     org.flywaydb: INFO
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    try-it-out-enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+  api-docs:
+    path: /v3/api-docs
