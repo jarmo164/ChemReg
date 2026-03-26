@@ -1,4 +1,4 @@
-package com.chemreg.ChemReg;
+package com.chemreg.chemreg;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
