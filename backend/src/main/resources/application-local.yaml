@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/chemreg
+    username: chemreg_user
+    password: chemreg_password
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    org.flywaydb: INFO
