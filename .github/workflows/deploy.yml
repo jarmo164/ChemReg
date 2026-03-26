@@ -32,7 +32,7 @@ jobs:
 
       - name: Build backend
         working-directory: backend
-        run: ./gradlew build -x test
+        run: ./gradlew --no-daemon clean build -x test
 
       - name: Set up Node 20
         uses: actions/setup-node@v4
@@ -41,7 +41,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: npm ci
 
       - name: Build frontend
         working-directory: frontend
@@ -78,6 +78,7 @@ jobs:
         run: |
           tar czf deployment.tar.gz \
             --exclude='frontend/node_modules' \
+            --exclude='frontend/dist' \
             --exclude='backend/.gradle' \
             --exclude='backend/build' \
             --exclude='.git' \
@@ -109,7 +110,7 @@ jobs:
             "$SSH_USER@$SERVER_IP" "mkdir -p $DEPLOY_PATH"
 
           echo "Uploading deployment package..."
-          time scp -v \
+          time scp \
             -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=15 \
@@ -130,9 +131,25 @@ jobs:
               mkdir -p $DEPLOY_PATH
               cd $DEPLOY_PATH
 
+              if command -v docker-compose >/dev/null 2>&1; then
+                DC='docker-compose'
+              else
+                DC='docker compose'
+              fi
+
               echo 'Current directory:'
               pwd
-              ls -lh
+              ls -lh || true
+
+              echo 'Stopping containers...'
+              \$DC -f '$DOCKER_COMPOSE_FILE' down || true
+
+              echo 'Cleaning old app files...'
+              rm -rf backend frontend
+
+              echo 'Cleaning Docker cache...'
+              docker builder prune -af || true
+              docker system prune -af || true
 
               echo 'Extracting archive...'
               tar xzf deployment.tar.gz
@@ -146,18 +163,13 @@ jobs:
                 exit 1
               fi
 
-              echo 'Stopping containers...'
-              docker-compose -f '$DOCKER_COMPOSE_FILE' down || true
-
               echo 'Building containers...'
-              docker-compose -f '$DOCKER_COMPOSE_FILE' build frontend
-              docker-compose -f '$DOCKER_COMPOSE_FILE' build backend
+              \$DC -f '$DOCKER_COMPOSE_FILE' build --no-cache frontend
+              \$DC -f '$DOCKER_COMPOSE_FILE' build --no-cache backend
 
               echo 'Starting containers...'
-              docker-compose -f '$DOCKER_COMPOSE_FILE' up -d --force-recreate
+              \$DC -f '$DOCKER_COMPOSE_FILE' up -d --force-recreate
 
               echo 'Deployment complete!'
-              docker-compose -f '$DOCKER_COMPOSE_FILE' ps
+              \$DC -f '$DOCKER_COMPOSE_FILE' ps
             "
-#borsibaar down
-#fsa
