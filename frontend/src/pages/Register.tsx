@@ -3,26 +3,42 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
 
-const Login = () => {
+const Register = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Add authentication logic
-    console.log('Login attempted with:', { email, password });
-    navigate('/');
+    // TODO: Add registration logic
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    console.log('Registration attempted with:', { name, email, password });
+    navigate('/login');
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-8">
-          Sign In
+          Create Account
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <Input
+            id="name"
+            label="Full Name"
+            type="text"
+            value={name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            placeholder="Enter your full name"
+            required
+          />
+
           <Input
             id="email"
             label="Email"
@@ -39,32 +55,29 @@ const Login = () => {
             type="password"
             value={password}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-            placeholder="Enter your password"
+            placeholder="Create a password"
             required
           />
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="h-4 w-4 text-blue-500 border-gray-300 rounded"
-              />
-              <span className="ml-2 text-sm text-gray-600">Remember me</span>
-            </label>
-            <Link to="/forgot-password" className="text-sm text-blue-500 hover:underline">
-              Forgot password?
-            </Link>
-          </div>
+          <Input
+            id="confirmPassword"
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+            placeholder="Confirm your password"
+            required
+          />
 
           <Button type="submit" className="w-full">
-            Sign In
+            Sign Up
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-500 hover:underline">
-            Sign up
+          Already have an account?{' '}
+          <Link to="/login" className="text-blue-500 hover:underline">
+            Sign in
           </Link>
         </p>
       </div>
@@ -72,4 +85,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
