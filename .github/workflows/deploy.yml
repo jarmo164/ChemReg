@@ -148,7 +148,7 @@ jobs:
               docker-compose -f '$DOCKER_COMPOSE_FILE' down || true
 
               echo 'Building containers...'
-              docker-compose -f '$DOCKER_COMPOSE_FILE' build --no-cache frontend
+              docker-compose -f '$DOCKER_COMPOSE_FILE' build frontend
               docker-compose -f '$DOCKER_COMPOSE_FILE' build backend
 
               echo 'Starting containers...'
