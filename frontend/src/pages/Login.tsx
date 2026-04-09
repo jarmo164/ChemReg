@@ -1,18 +1,26 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import { setAuthToken, setAuthUser } from '../auth/auth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Add authentication logic
-    console.log('Login attempted with:', { email, password });
-    navigate('/');
+    // TODO: Replace with real API auth.
+    setAuthToken(`demo:${email}`);
+    setAuthUser({
+      id: `demo:${email.toLowerCase().trim()}`,
+      email: email.toLowerCase().trim(),
+      name: email.split("@")[0],
+    });
+    const from = (location.state as any)?.from?.pathname;
+    navigate(from || '/dashboard', { replace: true });
   };
 
   return (
