@@ -8,5 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface ChemicalProductRepository extends JpaRepository<ChemicalProduct, UUID> {
-List<ChemicalProduct> findByTenantId(UUID tenantId);
+
+    List<ChemicalProduct> findByTenantId(UUID tenantId);
+
+    Optional<ChemicalProduct> findByIdAndTenant_Id(UUID id, UUID tenantId);
 }
