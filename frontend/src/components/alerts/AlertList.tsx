@@ -9,6 +9,7 @@ import {
     Stack,
     Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 type Props = {
     alerts: Alert[];
@@ -41,6 +42,7 @@ function actionLabel(type: Alert["type"]) {
 }
 
 export default function AlertList({ alerts }: Props) {
+    const navigate = useNavigate();
     const criticalCount = alerts.filter((a) => a.type === "critical").length;
     const warningCount = alerts.filter((a) => a.type === "warning").length;
 
@@ -69,7 +71,11 @@ export default function AlertList({ alerts }: Props) {
                     </Stack>
                 }
                 action={
-                    <Button size="small" sx={{ textTransform: "none", fontWeight: 700 }}>
+                    <Button
+                        size="small"
+                        onClick={() => navigate("/alerts")}
+                        sx={{ textTransform: "none", fontWeight: 700 }}
+                    >
                         View all →
                     </Button>
                 }

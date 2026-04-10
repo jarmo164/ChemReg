@@ -6,6 +6,12 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
+import ChemicalRegister from "./pages/ChemicalRegister";
+import SdsManagement from "./pages/SdsManagement";
+import RiskAssessments from "./pages/RiskAssessments";
+import Compliance from "./pages/Compliance";
+import Settings from "./pages/Settings";
+import UrgentAlerts from "./pages/UrgentAlerts";
 import RequireAuth from "./auth/RequireAuth";
 import { isAuthenticated } from "./auth/auth";
 
@@ -38,6 +44,12 @@ function App() {
                 >
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/chemicals" element={<ChemicalRegister />} />
+                    <Route path="/sds" element={<SdsManagement />} />
+                    <Route path="/risk" element={<RiskAssessments />} />
+                    <Route path="/compliance" element={<Compliance />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/alerts" element={<UrgentAlerts />} />
                 </Route>
             </Routes>
         </BrowserRouter>
