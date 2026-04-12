@@ -3,8 +3,11 @@ const AUTH_USER_KEY = "chemreg_auth_user";
 
 export type AuthUser = {
   id: string;
+  tenantId: string;
   email: string;
-  name?: string;
+  name: string;
+  role: string;
+  status: string;
 };
 
 export function getAuthToken(): string | null {

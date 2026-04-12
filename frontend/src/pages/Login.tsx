@@ -3,24 +3,45 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
 import { setAuthToken, setAuthUser } from '../auth/auth';
+import { login } from '../api/auth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Replace with real API auth.
-    setAuthToken(`demo:${email}`);
-    setAuthUser({
-      id: `demo:${email.toLowerCase().trim()}`,
-      email: email.toLowerCase().trim(),
-      name: email.split("@")[0],
-    });
-    const from = (location.state as any)?.from?.pathname;
-    navigate(from || '/dashboard', { replace: true });
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await login(email, password);
+
+      if (response.authenticated && response.user) {
+        setAuthToken(response.loggedInAt);
+        setAuthUser({
+          id: response.user.id,
+          tenantId: response.user.tenantId,
+          email: response.user.email,
+          name: response.user.name,
+          role: response.user.role,
+          status: response.user.status,
+        });
+        const from = (location.state as any)?.from?.pathname;
+        navigate(from || '/dashboard', { replace: true });
+      } else {
+        setError(response.message || 'Login failed');
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message || 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +52,18 @@ const Login = () => {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {(location.state as any)?.message && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+              {(location.state as any).message}
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
           <Input
             id="email"
             label="Email"
@@ -64,8 +97,8 @@ const Login = () => {
             </Link>
           </div>
 
-          <ChemRegButton type="submit" className="w-full">
-            Sign In
+          <ChemRegButton type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </ChemRegButton>
         </form>
 
