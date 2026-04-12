@@ -17,6 +17,9 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    const from = (location.state as any)?.from?.pathname;
+    navigate(from || '/dashboard', { replace: true });
+/*
 
     try {
       const response = await login(email, password);
@@ -41,7 +44,7 @@ const Login = () => {
       setError(error.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
-    }
+    }*/
   };
 
   return (
