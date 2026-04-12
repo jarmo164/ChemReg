@@ -12,6 +12,8 @@ import com.chemreg.chemreg.user.dto.UserResponse;
 import com.chemreg.chemreg.user.entity.User;
 import com.chemreg.chemreg.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,7 @@ public class UserService {
     private final UserCredentialRepository userCredentialRepository;
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     public UserService(
             UserRepository userRepository,
@@ -45,24 +48,31 @@ public class UserService {
             throw new BadRequestException("A user with this email already exists in the tenant.");
         }
 
-        User user = new User();
-        user.setTenant(tenant);
-        user.setName(request.getName().trim());
-        user.setEmail(normalizedEmail);
-        user.setRole(request.getRole());
-        user.setStatus(request.getStatus() == null ? UserStatus.active : request.getStatus());
-        user = userRepository.save(user);
+        try {
+            User user = new User();
+            user.setTenant(tenant);
+            user.setName(request.getName().trim());
+            user.setEmail(normalizedEmail);
+            user.setRole(request.getRole());
+            user.setStatus(request.getStatus() == null ? UserStatus.active : request.getStatus());
+            user = userRepository.save(user);
 
-        UserCredential credential = new UserCredential();
-        credential.setUser(user);
-        credential.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        credential.setFailedLoginAttempts(0);
-        credential.setLockedUntil(null);
-        credential.setLastLoginAt(null);
-        credential.setEmailVerifiedAt(null);
-        userCredentialRepository.save(credential);
+            UserCredential credential = new UserCredential();
+            credential.setUser(user);
+            credential.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+            credential.setFailedLoginAttempts(0);
+            credential.setLockedUntil(null);
+            credential.setLastLoginAt(null);
+            credential.setEmailVerifiedAt(null);
+            userCredentialRepository.save(credential);
 
-        return toUserResponse(user);
+            log.debug("User {} created with email {} .", user.getId(), user.getEmail());
+            return toUserResponse(user);
+        }
+        catch (Exception e) {
+            log.debug("User creation failed for email: {}", request.getEmail());
+            throw e;
+        }
     }
 
     private UserResponse toUserResponse(User user) {

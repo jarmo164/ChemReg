@@ -13,9 +13,18 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
 logging:
   level:
+    org.springframework.security: DEBUG
     org.flywaydb: INFO
+    root: INFO
+    com.chemreg.chemreg: DEBUG
 
 springdoc:
   swagger-ui:
@@ -26,3 +35,10 @@ springdoc:
     display-request-duration: true
   api-docs:
     path: /v3/api-docs
+
+app:
+  jwt:
+    issuer: ChemReg
+    secret: 5Zppg2eIxbwTlRBPF8p2RnYVSPjn2r3D1XUD06sgKQM=
+    access-token-minutes: 15
+    refresh-token-days: 30

@@ -3,6 +3,7 @@ package com.chemreg.chemreg.user.controller;
 import com.chemreg.chemreg.user.dto.CreateUserRequest;
 import com.chemreg.chemreg.user.dto.UserResponse;
 import com.chemreg.chemreg.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,8 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping
+    @Operation(security = {})
+    @PostMapping("/register")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(request));
     }
