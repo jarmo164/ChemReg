@@ -28,7 +28,7 @@ export function login(email: string, password: string): Promise<LoginResponse> {
 }
 
 export function register(name: string, email: string, password: string): Promise<UserResponse> {
-  return apiPost<UserResponse>('/api/users', {
+  return apiPost<UserResponse>('/api/users/register', {
     tenantId: DEFAULT_TENANT_ID,
     name,
     email,
