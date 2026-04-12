@@ -1,6 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import Button from '../components/Button';
+import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
 import { setAuthToken, setAuthUser } from '../auth/auth';
 import { login } from '../api/auth';
@@ -97,9 +97,9 @@ const Login = () => {
             </Link>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <ChemRegButton type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Signing in...' : 'Sign In'}
-          </Button>
+          </ChemRegButton>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">

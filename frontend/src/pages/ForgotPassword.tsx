@@ -1,6 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import Button from '../components/Button';
+import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
 
 const ForgotPassword = () => {
@@ -58,9 +58,9 @@ const ForgotPassword = () => {
             required
           />
 
-          <Button type="submit" className="w-full">
+          <ChemRegButton type="submit" className="w-full">
             Send Reset Link
-          </Button>
+          </ChemRegButton>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">

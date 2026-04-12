@@ -1,6 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import Button from '../components/Button';
+import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
 import { register } from '../api/auth';
 
@@ -93,10 +93,9 @@ const Register = () => {
             placeholder="Confirm your password"
             required
           />
-
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Sign Up'}
-          </Button>
+          <ChemRegButton type="submit" className="w-full" disabled={isLoading}>
+             {isLoading ? 'Creating account...' : 'Sign Up'}
+          </ChemRegButton>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">

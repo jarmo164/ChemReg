@@ -13,7 +13,7 @@ export default function Dashboard() {
                         Safety &amp; Compliance Dashboard
                     </Typography>
                     <Typography sx={{ mt: 0.5, fontSize: 13, color: "text.secondary" }}>
-                        Thursday, 19 March 2026 · Facility: Northgate Industrial Complex
+                      Thursday, 19 March 2026 · Facility: Northgate Industrial Complex
                     </Typography>
                 </Box>
 
