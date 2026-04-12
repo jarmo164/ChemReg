@@ -20,7 +20,7 @@ export default function Profile() {
   const handleSave = () => {
     const next: AuthUser = {
       ...user,
-      name: name.trim() || undefined,
+      name: name.trim(),
       email: email.trim().toLowerCase(),
     };
     setAuthUser(next);
