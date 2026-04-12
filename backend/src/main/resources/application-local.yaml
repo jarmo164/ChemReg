@@ -38,7 +38,7 @@ springdoc:
 
 app:
   jwt:
-    issuer: ChemReg
-    secret: 5Zppg2eIxbwTlRBPF8p2RnYVSPjn2r3D1XUD06sgKQM=
-    access-token-minutes: 15
-    refresh-token-days: 30
+    issuer: ${APP_JWT_ISSUER:ChemReg}
+    secret: ${APP_JWT_SECRET}
+    access-token-minutes: ${APP_JWT_ACCESS_TOKEN_MINUTES:15}
+    refresh-token-days: ${APP_JWT_REFRESH_TOKEN_DAYS:30}
