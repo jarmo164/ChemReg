@@ -15,7 +15,7 @@ const menu: MenuItem[] = [
 export default function Sidebar() {
     return (
         <aside className="sidebar">
-            <h2>ChemGuard</h2>
+            <h2>ChemReg</h2>
 
             <nav>
                 {menu.map((item) => (

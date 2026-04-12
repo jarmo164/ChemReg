@@ -126,7 +126,7 @@ export default function Layout() {
           </Avatar>
           <Box>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: "white", lineHeight: 1.1 }}>
-              ChemGuard
+              ChemReg
             </Typography>
             <Typography sx={{ fontSize: 12, color: "rgba(236, 253, 245, 0.82)" }}>
               {user?.email ?? "Safety & Compliance"}
