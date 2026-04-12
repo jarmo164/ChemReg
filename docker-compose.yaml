@@ -31,6 +31,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL}
     container_name: ${FRONTEND_CONTAINER_NAME}
     restart: always
     depends_on:
