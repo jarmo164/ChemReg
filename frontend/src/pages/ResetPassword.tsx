@@ -1,6 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import Button from '../components/Button';
+import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
 
 const ResetPassword = () => {
@@ -60,9 +60,9 @@ const ResetPassword = () => {
           <p className="text-gray-600 mb-6">
             Your password has been updated. You can now sign in with your new password.
           </p>
-          <Button onClick={() => navigate('/login')} className="w-full">
+          <ChemRegButton onClick={() => navigate('/login')} className="w-full">
             Go to Sign In
-          </Button>
+          </ChemRegButton>
         </div>
       </div>
     );
@@ -99,9 +99,9 @@ const ResetPassword = () => {
             required
           />
 
-          <Button type="submit" className="w-full">
+          <ChemRegButton type="submit" className="w-full">
             Reset Password
-          </Button>
+          </ChemRegButton>
         </form>
       </div>
     </div>
