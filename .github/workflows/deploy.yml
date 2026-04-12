@@ -45,6 +45,8 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          REACT_APP_API_URL: https://chemreg.zapto.org
         run: npm run build
 
       - name: Set up SSH key
