@@ -2,7 +2,7 @@ import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { register, ApiError } from '../api/auth';
+import { register } from '../api/auth';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -33,8 +33,8 @@ const Register = () => {
       await register(name, email, password);
       navigate('/login', { state: { message: 'Account created successfully. Please sign in.' } });
     } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'An error occurred during registration');
+      const error = err as Error;
+      setError(error.message || 'An error occurred during registration');
     } finally {
       setIsLoading(false);
     }

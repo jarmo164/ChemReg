@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { setAuthToken, setAuthUser } from '../auth/auth';
-import { login, ApiError } from '../api/auth';
+import { login } from '../api/auth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -37,8 +37,8 @@ const Login = () => {
         setError(response.message || 'Login failed');
       }
     } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message || 'An error occurred during login');
+      const error = err as Error;
+      setError(error.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
