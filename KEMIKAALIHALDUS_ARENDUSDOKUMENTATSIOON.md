@@ -197,18 +197,20 @@ Kasutajaliides peab toetama mitmekeelsust (i18n). Dokumentide ja muude andmete p
 
 ### 6.1. MVP (Modulaarne monoliit)
 
-Esmane versioon on mõistlik ehitada modulaarse monoliidina, et tagada kiire arendus ja lihtne haldus. Modulaarne struktuur tagab, et hiljem on võimalik üksikuid mooduleid eraldada mikroteenusteks ilma täieliku ümberkirjutamiseta.
+ChemRegi praeguse repo ja lähiaja MVP teostuse alus on modulaarne monoliit, mis kasutab olemasolevat Spring Boot + React tehnoloogiavirna. See lähenemine hoiab arenduse ja deploy vood lihtsana, kuid jätab moodulid piisavalt selgelt piiritletuks, et neid oleks võimalik hiljem vajadusel teenusteks eraldada.
 
 | Komponent | Tehnoloogia |
 |---|---|
-| **Backend** | Node.js (NestJS) |
-| **Frontend** | React + TypeScript + komponentide teek (nt Ant Design) |
-| **Andmebaas** | PostgreSQL 15+ |
-| **Otsingumootor** | OpenSearch 2.x |
-| **Failide salvestus** | S3-ühilduv objektisalvestus (nt MinIO, AWS S3) |
-| **Järjekorrasüsteem** | Redis + BullMQ |
-| **Autentimine** | Passport.js (OIDC/SAML) |
-| **PDF genereerimine** | Puppeteer / pdf-lib |
+| **Backend** | Java 21 + Spring Boot 4 (WebMVC, Data JPA, Validation, Security) |
+| **Frontend** | React 19 + TypeScript + MUI 7 |
+| **Andmebaas** | PostgreSQL 17 |
+| **Migratsioonid** | Flyway |
+| **API dokumentatsioon** | Springdoc OpenAPI / Swagger UI |
+| **Failide salvestus** | MVP-s abstraktsiooniga dokumendisalvestus; S3/MinIO tugi otsustatakse eraldi scope'i järgi |
+| **Otsing** | MVP-s baastaseme filtreerimine ja andmebaasipõhine otsing; eraldi otsinguplatvorm on hilisem laiendus |
+| **Taustatööd** | Vajadusel Spring-põhised async/job lahendused; eraldi järjekorrasüsteem ei ole MVP eeltingimus |
+| **Autentimine** | Spring Security + JWT / refresh token voog |
+| **PDF genereerimine** | Backend-põhine PDF väljundi teenus (täpne teek valitakse vastava mooduli juures) |
 
 ### 6.2. Skaleeruv arhitektuur (Mikroteenused)
 
@@ -220,42 +222,35 @@ Pärast MVP valideerimist ja klientide lisandumist saab süsteemi refaktoreerida
 
 ```
 /
-├── backend/                    # NestJS backend
+├── backend/                              # Spring Boot backend
+│   ├── src/main/java/com/chemreg/chemreg/
+│   │   ├── auth/                         # Autentimine, JWT, refresh tokenid
+│   │   ├── chemical/                     # Kemikaalitoodete kataloog
+│   │   ├── inventory/                    # Inventuur ja laoseis
+│   │   ├── risk/                         # Riskihindamise domeen
+│   │   ├── sds/                          # SDS halduse domeen
+│   │   ├── label/                        # Märgistuse domeen
+│   │   ├── workflow/                     # Kinnitused ja töövood
+│   │   ├── audit/                        # Auditilogid
+│   │   ├── common/                       # Ühised utiliidid, konfiguratsioon, erindid
+│   │   └── ...
+│   ├── src/main/resources/               # application-*.yaml, migratsioonide seadistus
+│   ├── src/test/                         # Backend testid
+│   └── build.gradle.kts
+│
+├── frontend/                             # React frontend
 │   ├── src/
-│   │   ├── auth/               # Autentimise moodul (SSO, JWT)
-│   │   ├── sds/                # SDS halduse moodul
-│   │   ├── inventory/          # Inventuuri moodul
-│   │   ├── risk/               # Riskihindamise moodul
-│   │   ├── labels/             # Märgistamise moodul
-│   │   ├── compliance/         # Vastavuse moodul
-│   │   ├── reports/            # Raportite moodul
-│   │   ├── audit/              # Auditilogide moodul
-│   │   ├── common/             # Ühised utiliidid, dekoraatorid, filtrid
-│   │   └── main.ts             # Rakenduse käivituspunkt
-│   ├── test/                   # Integratsioonitestid
+│   │   ├── pages/                        # Leheküljed (Dashboard, SDS, Inventory jne)
+│   │   ├── components/                   # Korduvkasutatavad komponendid
+│   │   ├── api/                          # API kliendi funktsioonid
+│   │   ├── auth/                         # Sessiooni- ja route-kaitse loogika
+│   │   ├── data/                         # Ajutised/mock andmed, mis tuleb MVP kriitilistelt radadelt eemaldada
+│   │   └── ...
 │   └── package.json
 │
-├── frontend/                   # React frontend
-│   ├── src/
-│   │   ├── pages/              # Leheküljed (Dashboard, SDS, Inventory jne)
-│   │   ├── components/         # Korduvkasutatavad komponendid
-│   │   ├── hooks/              # React hooks
-│   │   ├── store/              # Olekuhaldus (Zustand / Redux)
-│   │   ├── api/                # API kliendi funktsioonid
-│   │   └── i18n/               # Tõlgete failid
-│   └── package.json
-│
-├── workers/                    # Taustatöötlejad (BullMQ)
-│   ├── pdf-processor/          # PDF metaandmete ekstraheerimine
-│   ├── notifier/               # Teavituste saatmine
-│   └── compliance-tagger/      # Regulatiivne märgistamine
-│
-├── database/
-│   ├── migrations/             # Andmebaasi migratsioonid
-│   └── seeds/                  # Testandmed
-│
-├── docker-compose.yml          # Arenduskeskkond
-└── README.md
+├── docker-compose.yaml                   # Lokaalne arenduskeskkond
+├── README.md
+└── KEMIKAALIHALDUS_ARENDUSDOKUMENTATSIOON.md
 ```
 
 ---
