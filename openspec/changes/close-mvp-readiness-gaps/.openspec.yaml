@@ -1,0 +1,13 @@
+schema: spec-driven
+change:
+  id: close-mvp-readiness-gaps
+  title: Close ChemReg MVP readiness gaps from demo skeleton to pilot-ready product
+  owners:
+    - Koodikratt
+  status: proposed
+capabilities:
+  - platform-foundation
+  - authentication-and-access
+  - sds-and-chemical-registry
+  - risk-and-workflow
+  - operational-readiness
