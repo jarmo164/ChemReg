@@ -7,7 +7,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
 }
 
-const baseStyles = 'py-2 px-4 rounded-[var(--radius-md)] font-medium text-sm cursor-pointer transition-colors shadow-sm';
+const baseStyles = 'py-2 px-4 rounded-[var(--radius-md)] font-medium text-sm cursor-pointer transition-colors shadow-sm inline-flex items-center justify-center';
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-white hover:bg-primary',
