@@ -75,6 +75,39 @@ Detailne tehniline vaade:
 - Automaatsete testide katvus on napp ning CI pipeline ei valiideri teste enne deployd.
 - MVP funktsioonid (SDS toovood, riskihinnangu taisvood, inventuur) on osaliselt planeeritud, mitte taielikult implementeeritud.
 
+## Release bar: millal ChemReg on "ready"
+
+ChemRegi ei loeta pilot-ready seisus olevaks enne, kui allolev minimaalne valmidusbar on taidetud.
+
+### Noutud toovood
+
+- autentimine, sessiooni taastumine ja logout toimivad usaldusvaarsete tokenitega
+- RBAC ja scope-kontroll toimivad backendis, mitte ainult route-kihis
+- SDS loomine / uleslaadimine / detail / versioonihaldus toimib parisandmetega
+- chemical registry ja inventory + location flow toimivad parisandmetega
+- riskihinnangu baasvoog ja kinnitusring toimivad MVP ulatuses
+- vahemalt uks raport voi dokumendivaljund (nt label voi risk PDF) on kasutatav
+
+### Noutud kvaliteedikontrollid
+
+- backendi kriitilistele voogudele on unit/integration testid
+- frontendil on vahemalt peamiste happy pathide testid
+- olemas on vahemalt uks E2E test login -> core workflow teekonnale
+- CI peatab deploy, kui kohustuslik build voi test kukub labi
+
+### Noutud infra ja operatiivne valmisolek
+
+- keskkonnamuutujad ja secretsi kasutus on dokumenteeritud
+- migratsioonid jooksevad korratavalt puhtas keskkonnas
+- deploy/runbook kirjeldab buildi, juurutust, rollbacki ja taaste baasvoogu
+- storage/search/notification integratsioonide MVP piir on selgelt otsustatud
+
+### Noutud dokumentatsioon
+
+- README, wiki ja arendusdokument kirjeldavad sama stacki ja scope'i
+- MVP, post-MVP ja enterprise-only piirid on selgelt eristatud
+- teadaolevad piirangud on ausalt dokumenteeritud
+
 ## Kaivitamine
 
 ### 1) Soovituslik: Docker Compose
