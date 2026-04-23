@@ -212,6 +212,17 @@ ChemRegi praeguse repo ja lähiaja MVP teostuse alus on modulaarne monoliit, mis
 | **Autentimine** | Spring Security + JWT / refresh token voog |
 | **PDF genereerimine** | Backend-põhine PDF väljundi teenus (täpne teek valitakse vastava mooduli juures) |
 
+#### 6.1.1. Integreerimisotsused pilot-ready MVP jaoks
+
+| Teema | Otsus | Põhjendus |
+|---|---|---|
+| **S3 / MinIO dokumendisalvestus** | **MVP-s kohustuslik läbi abstraktsiooni** | SDS failid peavad olema salvestatavad vahetatava storage-kihi taha; lokaalis võib kasutada lihtsamat adapterit, kuid piloodi jaoks peab olema MinIO/S3-võimeline tee olemas. |
+| **Otsing** | **MVP-s lihtsustatud, eraldi otsingumootor edasi lükatud** | Esmane release vajab filtreerimist ja baasotsingut, mitte OpenSearch klastri opereerimist. |
+| **Teavitused** | **MVP-s kohustuslik minimaalne sündmuspõhine tase** | Riski kinnitusring ja SDS elutsükkel vajavad vähemalt baasnotifikatsioone, isegi kui kanalite valik jääb kitsaks. |
+| **SSO / SAML** | **Edasi lükatud** | Praegune repo ja MVP vajadus ei õigusta enne pilooti keerukamat identiteedihalduse integratsiooni. |
+| **MFA** | **Edasi lükatud post-MVP / enterprise tasemele** | Turbenõue on oluline, kuid selle sidumine SSO/IdP strateegiaga tuleb teha tervikotsusena, mitte poolikult MVP sees. |
+| **Compliance import** | **Edasi lükatud** | Regulatiivsete nimekirjade automaatne import ei ole pilot-ready MVP eeltingimus; käsitsi hallatav baasvoog piisab esimeseks etapiks. |
+
 ### 6.2. Skaleeruv arhitektuur (Mikroteenused)
 
 Pärast MVP valideerimist ja klientide lisandumist saab süsteemi refaktoreerida mikroteenuste arhitektuurile. Eraldi teenused luuakse järgmistele funktsionaalsustele: dokumendihaldus (SDS), inventuur, riskihindamine, vastavus ja raportid. Teenuste vaheline suhtlus toimub sündmustepõhiselt (event bus), kasutades Kafka või NATS platvormi.
