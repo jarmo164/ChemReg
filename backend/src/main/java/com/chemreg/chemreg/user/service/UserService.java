@@ -14,6 +14,7 @@ import com.chemreg.chemreg.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,7 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public UserResponse createUser(CreateUserRequest request) {
         Tenant tenant = tenantRepository.findById(request.getTenantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + request.getTenantId()));

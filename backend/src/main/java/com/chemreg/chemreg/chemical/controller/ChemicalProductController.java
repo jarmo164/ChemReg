@@ -6,6 +6,7 @@ import com.chemreg.chemreg.chemical.service.ChemicalProductService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,21 +30,25 @@ public class ChemicalProductController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ChemicalProductResponse>> list() {
         return ResponseEntity.ok(chemicalProductService.listAllForStubTenant());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChemicalProductResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(chemicalProductService.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChemicalProductResponse> create(@Valid @RequestBody SaveChemicalProductRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(chemicalProductService.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ChemicalProductResponse> update(
             @PathVariable UUID id,
             @Valid @RequestBody SaveChemicalProductRequest request
@@ -52,6 +57,7 @@ public class ChemicalProductController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         chemicalProductService.delete(id);
         return ResponseEntity.noContent().build();

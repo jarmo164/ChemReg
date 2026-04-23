@@ -10,6 +10,7 @@ import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,6 +34,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ChemicalProductResponse create(SaveChemicalProductRequest request) {
         stubTenantProvisioner.ensureStubTenantExists();
         Tenant tenant = tenantRepository.findById(ChemicalIntegrationStubs.STUB_TENANT_ID)
@@ -51,6 +53,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public List<ChemicalProductResponse> listAllForStubTenant() {
         return chemicalProductRepository.findByTenantId(ChemicalIntegrationStubs.STUB_TENANT_ID).stream()
                 .map(this::toResponse)
@@ -58,6 +61,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ChemicalProductResponse getById(UUID id) {
         ChemicalProduct product = chemicalProductRepository
                 .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
@@ -66,6 +70,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public ChemicalProductResponse update(UUID id, SaveChemicalProductRequest request) {
         ChemicalProduct product = chemicalProductRepository
                 .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
@@ -78,6 +83,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
+    @PreAuthorize("isAuthenticated()")
     public void delete(UUID id) {
         ChemicalProduct product = chemicalProductRepository
                 .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
