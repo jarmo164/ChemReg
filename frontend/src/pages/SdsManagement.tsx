@@ -1,528 +1,579 @@
 import { useMemo, useState } from "react";
-import { MiniSdsDocument, MiniSdsPayload } from "../types/sds";
-import { miniSdsDocuments } from "../data/sdsMockData";
+import {
+  Box,
+  Card,
+  Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  MenuItem,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
+import {
+  Sync as SyncIcon,
+  FileUpload as ImportIcon,
+  Add as AddIcon,
+  Search as SearchIcon,
+  Visibility as ViewIcon,
+  Download as DownloadIcon,
+  Warning as WarningIcon,
+  Close as CloseIcon,
+} from "@mui/icons-material";
+import ChemRegButton from "../components/ChemRegButton";
+import StatusChip from "../components/StatusChip";
 
-type FormMode = "create" | "edit";
+type SdsStatus = "current" | "expiring_soon" | "expired";
+type MiniSdsMode = "create" | "edit";
+type BackendSdsStatus = "active" | "pending_review" | "archived";
 
-type FormState = MiniSdsPayload;
+type SdsListRow = {
+  id: string;
+  productName: string;
+  casNumber: string;
+  revision: string;
+  supplierName: string;
+  expiryDate: string;
+  status: SdsStatus;
+};
 
-const createEmptyPayload = (): FormState => ({
+type MiniSdsForm = {
+  productName: string;
+  supplierNameRaw: string;
+  supplierId: string;
+  language: string;
+  countryFormat: string;
+  revisionDate: string;
+  expiryDate: string;
+  status: BackendSdsStatus;
+  section1Identification: string;
+  section2Hazards: string;
+  section3Composition: string;
+  section4FirstAid: string;
+  section5Firefighting: string;
+  section6AccidentalRelease: string;
+  section7HandlingStorage: string;
+  section8ExposureControl: string;
+};
+
+type BackendSdsPayload = {
   document: {
-    productName: "",
-    supplierNameRaw: "",
-    language: "et",
-    countryFormat: "EE",
-    revisionDate: "",
-    expiryDate: "",
-    status: "active",
+    productName: string;
+    supplierNameRaw: string;
+    language: string;
+    countryFormat: string;
+    revisionDate: string | null;
+    expiryDate: string | null;
+    status: BackendSdsStatus;
+  };
+  supplierIds: string[];
+  sections: Array<{
+    sectionNumber: number;
+    title: string;
+    content: string;
+  }>;
+};
+
+const supplierOptions = [
+  { id: "supplier-sigma", name: "Sigma-Aldrich" },
+  { id: "supplier-merck", name: "Merck KGaA" },
+  { id: "supplier-thermo", name: "ThermoFisher Scientific" },
+  { id: "supplier-air", name: "Air Products" },
+];
+
+const initialDocuments: SdsListRow[] = [
+  {
+    id: "SDS-001",
+    productName: "Sodium Hydroxide",
+    casNumber: "1310-73-2",
+    revision: "2026-02-15",
+    supplierName: "Sigma-Aldrich",
+    expiryDate: "2026-09-15",
+    status: "current",
   },
-  summary: {
-    intendedUse: "",
-    signalWord: "",
-    physicalState: "",
-    emergencyPhone: "",
+  {
+    id: "SDS-002",
+    productName: "Hydrochloric Acid 37%",
+    casNumber: "7647-01-0",
+    revision: "2026-01-04",
+    supplierName: "Merck KGaA",
+    expiryDate: "2026-04-01",
+    status: "expiring_soon",
   },
-  hazards: {
-    hazardStatements: [""],
-    precautionaryStatements: [""],
-    pictograms: [],
+  {
+    id: "SDS-003",
+    productName: "Acetone",
+    casNumber: "67-64-1",
+    revision: "2026-03-10",
+    supplierName: "ThermoFisher Scientific",
+    expiryDate: "2027-01-20",
+    status: "current",
   },
-  firstAid: {
-    inhalation: "",
-    skinContact: "",
-    eyeContact: "",
-    ingestion: "",
+  {
+    id: "SDS-005",
+    productName: "Sulfuric Acid 98%",
+    casNumber: "7664-93-9",
+    revision: "2025-01-15",
+    supplierName: "Merck KGaA",
+    expiryDate: "2026-01-15",
+    status: "expired",
   },
-  fireResponse: {
-    extinguishingMedia: "",
-    specialHazards: "",
-    protectiveEquipment: "",
-  },
-  spillHandling: {
-    personalPrecautions: "",
-    environmentalPrecautions: "",
-    cleanupMethods: "",
-  },
-  handlingStorage: {
-    safeHandling: "",
-    safeStorage: "",
-    incompatibleMaterials: "",
-  },
-  exposureControl: {
-    exposureLimits: "",
-    engineeringControls: "",
-    ppe: "",
-  },
-  composition: {
-    components: [
-      {
-        substanceName: "",
-        casNumber: "",
-        ecNumber: "",
-        concentrationMin: "",
-        concentrationMax: "",
-      },
-    ],
-  },
-  transportDisposal: {
-    unNumber: "",
-    transportHazardClass: "",
-    packingGroup: "",
-    wasteHandling: "",
-  },
+];
+
+const sectionDefinitions = [
+  { key: "section1Identification", number: 1, title: "Identification" },
+  { key: "section2Hazards", number: 2, title: "Hazard identification" },
+  { key: "section3Composition", number: 3, title: "Composition / information on ingredients" },
+  { key: "section4FirstAid", number: 4, title: "First aid measures" },
+  { key: "section5Firefighting", number: 5, title: "Firefighting measures" },
+  { key: "section6AccidentalRelease", number: 6, title: "Accidental release measures" },
+  { key: "section7HandlingStorage", number: 7, title: "Handling and storage" },
+  { key: "section8ExposureControl", number: 8, title: "Exposure controls / personal protection" },
+] as const;
+
+const createEmptyForm = (): MiniSdsForm => ({
+  productName: "",
+  supplierNameRaw: "",
+  supplierId: "",
+  language: "et",
+  countryFormat: "EE",
+  revisionDate: "",
+  expiryDate: "",
+  status: "active",
+  section1Identification: "",
+  section2Hazards: "",
+  section3Composition: "",
+  section4FirstAid: "",
+  section5Firefighting: "",
+  section6AccidentalRelease: "",
+  section7HandlingStorage: "",
+  section8ExposureControl: "",
 });
 
-const languageOptions = ["et", "en", "fi", "lv", "lt"];
-const countryOptions = ["EE", "FI", "LV", "LT", "SE"];
-const statusOptions = ["active", "pending_review", "archived"] as const;
-const pictogramOptions = ["GHS01", "GHS02", "GHS03", "GHS04", "GHS05", "GHS06", "GHS07", "GHS08", "GHS09"];
+const seededForms: Record<string, MiniSdsForm> = {
+  "SDS-001": {
+    productName: "Sodium Hydroxide",
+    supplierNameRaw: "Sigma-Aldrich",
+    supplierId: "supplier-sigma",
+    language: "et",
+    countryFormat: "EE",
+    revisionDate: "2026-02-15",
+    expiryDate: "2026-09-15",
+    status: "active",
+    section1Identification: "NaOH puhastus- ja neutraliseerimiskemikaal. Hädaabinumber +372 16662.",
+    section2Hazards: "H314 Causes severe skin burns and eye damage. P280 Wear protective gloves and face protection.",
+    section3Composition: "Sodium hydroxide, CAS 1310-73-2, EC 215-185-5, concentration 25-50%.",
+    section4FirstAid: "Naha või silma sattumisel loputada koheselt rohke veega vähemalt 15 minutit.",
+    section5Firefighting: "Toode ei põle, kuid tulekahju korral kasutada ümbruskonnale sobivaid kustutusvahendeid.",
+    section6AccidentalRelease: "Piirata lekkepiirkond, kasutada keemiliselt vastupidavat absorbenti.",
+    section7HandlingStorage: "Hoida korrosioonikindlas mahutis, vältida kokkupuudet hapetega.",
+    section8ExposureControl: "Kaitseprillid, visiir, nitriilkindad, lokaalne väljatõmme.",
+  },
+  "SDS-002": {
+    productName: "Hydrochloric Acid 37%",
+    supplierNameRaw: "Merck KGaA",
+    supplierId: "supplier-merck",
+    language: "en",
+    countryFormat: "EE",
+    revisionDate: "2026-01-04",
+    expiryDate: "2026-04-01",
+    status: "pending_review",
+    section1Identification: "Hydrochloric acid for process cleaning. Emergency phone +372 16662.",
+    section2Hazards: "H290 May be corrosive to metals. H314 Causes severe skin burns and eye damage.",
+    section3Composition: "Hydrogen chloride, CAS 7647-01-0, concentration 35-37%.",
+    section4FirstAid: "Move exposed person to fresh air and flush affected area with water.",
+    section5Firefighting: "Use water spray to cool containers. Product is not flammable.",
+    section6AccidentalRelease: "Ventilate area and neutralize carefully with alkali absorbent.",
+    section7HandlingStorage: "Store in corrosion-resistant container with resistant inner liner.",
+    section8ExposureControl: "Chemical goggles, acid-resistant gloves, apron and local exhaust ventilation.",
+  },
+  "SDS-003": {
+    productName: "Acetone",
+    supplierNameRaw: "ThermoFisher Scientific",
+    supplierId: "supplier-thermo",
+    language: "et",
+    countryFormat: "EE",
+    revisionDate: "2026-03-10",
+    expiryDate: "2027-01-20",
+    status: "active",
+    section1Identification: "Labori lahusti proovide ettevalmistuseks. Hädaabinumber +372 16662.",
+    section2Hazards: "H225 Highly flammable liquid and vapour. H319 Causes serious eye irritation.",
+    section3Composition: "Acetone, CAS 67-64-1, EC 200-662-2, concentration 95-100%.",
+    section4FirstAid: "Viia kannatanu värske õhu kätte. Silma sattumisel loputada ettevaatlikult veega.",
+    section5Firefighting: "Kasutada alkoholikindlat vahtu, CO2 või pulberkustutit.",
+    section6AccidentalRelease: "Eemaldada süüteallikad, tagada ventilatsioon, absorbeerida inertse materjaliga.",
+    section7HandlingStorage: "Hoida hästi ventileeritavas tuleohutuskapis, anum tihedalt suletud.",
+    section8ExposureControl: "Nitriilkindad, kaitseprillid, kohtäratõmme.",
+  },
+  "SDS-005": {
+    productName: "Sulfuric Acid 98%",
+    supplierNameRaw: "Merck KGaA",
+    supplierId: "supplier-merck",
+    language: "en",
+    countryFormat: "EE",
+    revisionDate: "2025-01-15",
+    expiryDate: "2026-01-15",
+    status: "archived",
+    section1Identification: "Sulfuric acid for lab and maintenance operations.",
+    section2Hazards: "H290 May be corrosive to metals. H314 Causes severe skin burns and eye damage.",
+    section3Composition: "Sulfuric acid, CAS 7664-93-9, EC 231-639-5, concentration 95-98%.",
+    section4FirstAid: "Immediately flush skin and eyes with water. Get medical attention urgently.",
+    section5Firefighting: "Not combustible, but reacts with many metals producing hydrogen.",
+    section6AccidentalRelease: "Contain leak, dilute carefully and neutralize if trained to do so.",
+    section7HandlingStorage: "Store locked up in acid-resistant containers away from bases.",
+    section8ExposureControl: "Face shield, acid-resistant gloves, apron and ventilation.",
+  },
+};
 
-const pageShell = "min-h-screen bg-slate-100 text-slate-900";
-const panel = "rounded-3xl border border-slate-200 bg-white shadow-sm";
-const sectionTitle = "text-lg font-semibold text-slate-900";
-const labelClass = "mb-2 block text-sm font-medium text-slate-700";
-const inputClass = "w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100";
-const textareaClass = `${inputClass} min-h-[104px] resize-y`;
-const buttonBase = "inline-flex items-center justify-center rounded-2xl px-4 py-2.5 text-sm font-semibold transition";
+const payloadFromForm = (form: MiniSdsForm): BackendSdsPayload => ({
+  document: {
+    productName: form.productName.trim(),
+    supplierNameRaw: form.supplierNameRaw.trim(),
+    language: form.language,
+    countryFormat: form.countryFormat,
+    revisionDate: form.revisionDate || null,
+    expiryDate: form.expiryDate || null,
+    status: form.status,
+  },
+  supplierIds: form.supplierId ? [form.supplierId] : [],
+  sections: sectionDefinitions
+    .map((section) => ({
+      sectionNumber: section.number,
+      title: section.title,
+      content: form[section.key].trim(),
+    }))
+    .filter((section) => section.content.length > 0),
+});
+
+const rowStatusFromForm = (form: MiniSdsForm): SdsStatus => {
+  if (!form.expiryDate) return "current";
+  const expiry = new Date(form.expiryDate);
+  const today = new Date();
+  const diffDays = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return "expired";
+  if (diffDays <= 30) return "expiring_soon";
+  return "current";
+};
 
 export default function SdsManagement() {
-  const [documents, setDocuments] = useState<MiniSdsDocument[]>(miniSdsDocuments);
+  const [documents, setDocuments] = useState<SdsListRow[]>(initialDocuments);
+  const [formsById, setFormsById] = useState<Record<string, MiniSdsForm>>(seededForms);
   const [search, setSearch] = useState("");
-  const [mode, setMode] = useState<FormMode>("create");
+  const [statusFilter, setStatusFilter] = useState<"all" | SdsStatus>("all");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [mode, setMode] = useState<MiniSdsMode>("create");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [formState, setFormState] = useState<FormState>(createEmptyPayload());
-  const [lastSubmittedJson, setLastSubmittedJson] = useState<string>("");
+  const [form, setForm] = useState<MiniSdsForm>(createEmptyForm());
+  const [generatedJson, setGeneratedJson] = useState<string>("");
 
   const filteredDocuments = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return documents;
-    return documents.filter((doc) =>
-      [doc.id, doc.productName, doc.supplierName, doc.language, doc.countryFormat]
+    return documents.filter((sds) => {
+      const matchesSearch = [sds.id, sds.productName, sds.casNumber, sds.supplierName]
         .join(" ")
         .toLowerCase()
-        .includes(query)
-    );
-  }, [documents, search]);
+        .includes(search.toLowerCase());
+      const matchesFilter = statusFilter === "all" ? true : sds.status === statusFilter;
+      return matchesSearch && matchesFilter;
+    });
+  }, [documents, search, statusFilter]);
 
-  const openCreate = () => {
+  const filterCounts = useMemo(
+    () => ({
+      all: documents.length,
+      current: documents.filter((s) => s.status === "current").length,
+      expiring_soon: documents.filter((s) => s.status === "expiring_soon").length,
+      expired: documents.filter((s) => s.status === "expired").length,
+    }),
+    [documents]
+  );
+
+  const openCreateDialog = () => {
     setMode("create");
     setSelectedId(null);
-    setFormState(createEmptyPayload());
+    setForm(createEmptyForm());
+    setGeneratedJson("");
+    setDialogOpen(true);
   };
 
-  const openEdit = (doc: MiniSdsDocument) => {
+  const openEditDialog = (id: string) => {
+    const existing = formsById[id];
+    if (!existing) return;
     setMode("edit");
-    setSelectedId(doc.id);
-    setFormState(structuredClone(doc.payload));
+    setSelectedId(id);
+    setForm(existing);
+    setGeneratedJson(JSON.stringify(payloadFromForm(existing), null, 2));
+    setDialogOpen(true);
   };
 
-  const updateDocumentField = (field: keyof FormState["document"], value: string) => {
-    setFormState((current) => ({
-      ...current,
-      document: {
-        ...current.document,
-        [field]: value,
-      },
-    }));
+  const closeDialog = () => setDialogOpen(false);
+
+  const setField = (field: keyof MiniSdsForm, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const updateSummaryField = (field: keyof FormState["summary"], value: string) => {
-    setFormState((current) => ({
-      ...current,
-      summary: {
-        ...current.summary,
-        [field]: value,
-      },
-    }));
-  };
-
-  const updateNestedTextGroup = (
-    group: "firstAid" | "fireResponse" | "spillHandling" | "handlingStorage" | "exposureControl" | "transportDisposal",
-    field: string,
-    value: string
-  ) => {
-    setFormState((current) => ({
-      ...current,
-      [group]: {
-        ...current[group],
-        [field]: value,
-      },
-    }));
-  };
-
-  const updateListField = (field: "hazardStatements" | "precautionaryStatements", index: number, value: string) => {
-    setFormState((current) => {
-      const next = [...current.hazards[field]];
-      next[index] = value;
-      return {
-        ...current,
-        hazards: {
-          ...current.hazards,
-          [field]: next,
-        },
-      };
-    });
-  };
-
-  const addListItem = (field: "hazardStatements" | "precautionaryStatements") => {
-    setFormState((current) => ({
-      ...current,
-      hazards: {
-        ...current.hazards,
-        [field]: [...current.hazards[field], ""],
-      },
-    }));
-  };
-
-  const togglePictogram = (code: string) => {
-    setFormState((current) => {
-      const exists = current.hazards.pictograms.includes(code);
-      return {
-        ...current,
-        hazards: {
-          ...current.hazards,
-          pictograms: exists
-            ? current.hazards.pictograms.filter((item) => item !== code)
-            : [...current.hazards.pictograms, code],
-        },
-      };
-    });
-  };
-
-  const updateComponent = (index: number, field: keyof FormState["composition"]["components"][number], value: string) => {
-    setFormState((current) => ({
-      ...current,
-      composition: {
-        components: current.composition.components.map((component, componentIndex) =>
-          componentIndex === index ? { ...component, [field]: value } : component
-        ),
-      },
-    }));
-  };
-
-  const addComponent = () => {
-    setFormState((current) => ({
-      ...current,
-      composition: {
-        components: [
-          ...current.composition.components,
-          {
-            substanceName: "",
-            casNumber: "",
-            ecNumber: "",
-            concentrationMin: "",
-            concentrationMax: "",
-          },
-        ],
-      },
-    }));
-  };
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const payload = structuredClone(formState);
-    const productName = payload.document.productName.trim();
-    const supplierName = payload.document.supplierNameRaw.trim();
-
-    const record: MiniSdsDocument = {
-      id: selectedId ?? `SDS-${String(documents.length + 1).padStart(3, "0")}`,
-      productName,
-      supplierName,
-      revisionDate: payload.document.revisionDate,
-      language: payload.document.language,
-      countryFormat: payload.document.countryFormat,
-      status: mode === "create" ? "draft" : "ready",
-      payload,
+  const handleSubmit = () => {
+    const nextId = selectedId ?? `SDS-${String(documents.length + 1).padStart(3, "0")}`;
+    const nextRow: SdsListRow = {
+      id: nextId,
+      productName: form.productName.trim(),
+      casNumber: extractCasPreview(form.section3Composition),
+      revision: form.revisionDate,
+      supplierName: form.supplierNameRaw.trim(),
+      expiryDate: form.expiryDate,
+      status: rowStatusFromForm(form),
     };
+    const payload = payloadFromForm(form);
 
+    setFormsById((current) => ({ ...current, [nextId]: form }));
     setDocuments((current) => {
-      if (mode === "edit" && selectedId) {
-        return current.map((doc) => (doc.id === selectedId ? record : doc));
+      if (selectedId) {
+        return current.map((item) => (item.id === selectedId ? nextRow : item));
       }
-      return [record, ...current];
+      return [nextRow, ...current];
     });
-
-    setSelectedId(record.id);
+    setSelectedId(nextId);
     setMode("edit");
-    setLastSubmittedJson(JSON.stringify(payload, null, 2));
+    setGeneratedJson(JSON.stringify(payload, null, 2));
   };
+
+  const expiredCount = filterCounts.expired;
 
   return (
-    <div className={pageShell}>
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 lg:flex-row lg:px-6">
-        <aside className={`${panel} h-fit w-full p-5 lg:sticky lg:top-6 lg:w-[340px]`}>
-          <div className="mb-5 flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">Issue #42</p>
-              <h1 className="mt-2 text-2xl font-bold">SDS form</h1>
-              <p className="mt-2 text-sm text-slate-600">Open existing mock SDS entries or create a new one. Submit returns backend-ready JSON.</p>
-            </div>
-            <button className={`${buttonBase} bg-emerald-600 text-white hover:bg-emerald-700`} onClick={openCreate}>
-              + Add SDS
-            </button>
-          </div>
+    <Box>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+        <Box>
+          <Typography sx={{ fontSize: 24, fontWeight: 900, color: "text.primary" }}>SDS Management</Typography>
+          <Typography sx={{ mt: 0.5, fontSize: 13, color: "text.secondary" }}>
+            Store, version, and manage Safety Data Sheets
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <ChemRegButton variant="outline">
+            <SyncIcon sx={{ fontSize: 16, mr: 0.5 }} />
+            Auto-sync
+          </ChemRegButton>
+          <ChemRegButton variant="outline">
+            <ImportIcon sx={{ fontSize: 16, mr: 0.5 }} />
+            Import SDS
+          </ChemRegButton>
+          <ChemRegButton variant="primary" onClick={openCreateDialog}>
+            <AddIcon sx={{ fontSize: 16, mr: 0.5 }} />
+            Add SDS
+          </ChemRegButton>
+        </Stack>
+      </Stack>
 
-          <label className={labelClass} htmlFor="sds-search">Search SDS</label>
-          <input
-            id="sds-search"
-            className={inputClass}
+      <Stack direction="row" spacing={1} sx={{ mt: 3, alignItems: "center" }}>
+        <Chip label={`${filterCounts.all} Total SDSs`} sx={chipBaseSx("var(--gpv-gray-100)")} />
+        <Chip label={`${filterCounts.current} Current`} sx={chipBaseSx("rgba(46, 164, 79, 0.1)", "#16a34a")} />
+        <Chip label={`${filterCounts.expiring_soon} Expiring (30 days)`} sx={chipBaseSx("rgba(245, 158, 11, 0.12)", "#b45309")} />
+        <Chip label={`${filterCounts.expired} Expired`} sx={chipBaseSx("rgba(225, 29, 72, 0.1)", "#be123c")} />
+        <Box sx={{ flex: 1 }} />
+        <Box sx={{ position: "relative", width: 220 }}>
+          <SearchIcon sx={{ position: "absolute", left: 10, top: 11, fontSize: 18, color: "text.secondary", zIndex: 1 }} />
+          <TextField
+            size="small"
+            placeholder="Search SDS..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by name, supplier or ID"
+            sx={{ width: 220, "& .MuiInputBase-input": { pl: 4 } }}
           />
+        </Box>
+        <Select size="small" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as "all" | SdsStatus)} sx={{ minWidth: 120 }}>
+          <MenuItem value="all">All</MenuItem>
+          <MenuItem value="current">Current</MenuItem>
+          <MenuItem value="expiring_soon">Expiring</MenuItem>
+          <MenuItem value="expired">Expired</MenuItem>
+        </Select>
+      </Stack>
 
-          <div className="mt-5 space-y-3">
-            {filteredDocuments.map((doc) => {
-              const active = selectedId === doc.id;
-              return (
-                <button
-                  key={doc.id}
-                  onClick={() => openEdit(doc)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-                    active
-                      ? "border-emerald-500 bg-emerald-50 shadow-sm"
-                      : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{doc.id}</p>
-                      <p className="mt-1 font-semibold text-slate-900">{doc.productName}</p>
-                      <p className="mt-1 text-sm text-slate-600">{doc.supplierName}</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${doc.status === "ready" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                      {doc.status}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+      {expiredCount > 0 && (
+        <Box
+          sx={{
+            mt: 2,
+            px: 2,
+            py: 1.5,
+            bgcolor: "rgba(225, 29, 72, 0.08)",
+            borderRadius: "var(--radius-md)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <WarningIcon sx={{ fontSize: 18, color: "#be123c" }} />
+            <Typography sx={{ fontSize: 13, color: "#be123c", fontWeight: 500 }}>
+              {expiredCount} SDS expired – associated chemical operations are restricted.
+            </Typography>
+          </Stack>
+          <Typography sx={{ fontSize: 13, color: "#be123c", fontWeight: 700, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+            Renew All
+          </Typography>
+        </Box>
+      )}
 
-        <main className="flex-1 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <section className={`${panel} p-6`}>
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className={sectionTitle}>{mode === "create" ? "Create new SDS" : `Edit ${selectedId}`}</h2>
-                  <p className="mt-1 text-sm text-slate-600">The form is structured as a compact mini-SDS and produces nested JSON for the backend.</p>
-                </div>
-                <button type="submit" className={`${buttonBase} bg-slate-900 text-white hover:bg-slate-700`}>
-                  Save & generate JSON
-                </button>
-              </div>
+      <Card sx={{ mt: 2 }}>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ bgcolor: "var(--gpv-gray-100)" }}>
+              {[
+                "SDS ID",
+                "Chemical Name",
+                "CAS Number",
+                "Revision",
+                "Manufacturer",
+                "Expiry Date",
+                "Status",
+                "Actions",
+              ].map((label) => (
+                <TableCell key={label} sx={tableHeadCellSx}>
+                  {label}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredDocuments.map((sds) => (
+              <TableRow key={sds.id} hover>
+                <TableCell><Typography sx={{ fontSize: 13, fontWeight: 600, color: "var(--gpv-primary-500)" }}>{sds.id}</Typography></TableCell>
+                <TableCell><Typography sx={{ fontSize: 13, fontWeight: 500 }}>{sds.productName}</Typography></TableCell>
+                <TableCell><Typography sx={{ fontSize: 13, color: "text.secondary" }}>{sds.casNumber || "—"}</Typography></TableCell>
+                <TableCell><Typography sx={{ fontSize: 13, color: "text.secondary" }}>{sds.revision || "—"}</Typography></TableCell>
+                <TableCell><Typography sx={{ fontSize: 13, color: "text.secondary" }}>{sds.supplierName}</Typography></TableCell>
+                <TableCell>
+                  <Typography sx={{ fontSize: 13, color: sds.status === "expired" ? "#be123c" : "text.secondary", fontWeight: sds.status === "expired" ? 600 : 400 }}>
+                    {sds.expiryDate || "—"}
+                  </Typography>
+                </TableCell>
+                <TableCell><StatusChip status={sds.status} /></TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                    <IconButton size="small" sx={{ color: "text.secondary" }} onClick={() => openEditDialog(sds.id)}>
+                      <ViewIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                    <IconButton size="small" sx={{ color: "text.secondary" }} onClick={() => openEditDialog(sds.id)}>
+                      <DownloadIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Field label="Product name">
-                  <input className={inputClass} value={formState.document.productName} onChange={(e) => updateDocumentField("productName", e.target.value)} required />
-                </Field>
-                <Field label="Supplier">
-                  <input className={inputClass} value={formState.document.supplierNameRaw} onChange={(e) => updateDocumentField("supplierNameRaw", e.target.value)} required />
-                </Field>
-                <Field label="Revision date">
-                  <input type="date" className={inputClass} value={formState.document.revisionDate} onChange={(e) => updateDocumentField("revisionDate", e.target.value)} required />
-                </Field>
-                <Field label="Expiry date">
-                  <input type="date" className={inputClass} value={formState.document.expiryDate} onChange={(e) => updateDocumentField("expiryDate", e.target.value)} />
-                </Field>
-                <Field label="Language">
-                  <select className={inputClass} value={formState.document.language} onChange={(e) => updateDocumentField("language", e.target.value)}>
-                    {languageOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </select>
-                </Field>
-                <Field label="Country format">
-                  <select className={inputClass} value={formState.document.countryFormat} onChange={(e) => updateDocumentField("countryFormat", e.target.value)}>
-                    {countryOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </select>
-                </Field>
-                <Field label="Status">
-                  <select className={inputClass} value={formState.document.status} onChange={(e) => updateDocumentField("status", e.target.value)}>
-                    {statusOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </select>
-                </Field>
-                <Field label="Signal word">
-                  <input className={inputClass} value={formState.summary.signalWord} onChange={(e) => updateSummaryField("signalWord", e.target.value)} placeholder="Danger / Warning" />
-                </Field>
-                <Field label="Physical state">
-                  <input className={inputClass} value={formState.summary.physicalState} onChange={(e) => updateSummaryField("physicalState", e.target.value)} placeholder="liquid / solid / gas" />
-                </Field>
-              </div>
-            </section>
+      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+            <Box>
+              <Typography sx={{ fontSize: 22, fontWeight: 800 }}>
+                {mode === "create" ? "Create mini SDS" : `Edit mini SDS • ${selectedId}`}
+              </Typography>
+              <Typography sx={{ mt: 0.5, fontSize: 13, color: "text.secondary" }}>
+                Mini SDS is embedded into ChemReg SDS Management and generates backend-aligned SDS document payload.
+              </Typography>
+            </Box>
+            <IconButton onClick={closeDialog}><CloseIcon /></IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={3}>
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 2 }}>Document metadata</Typography>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ flexWrap: "wrap" }} useFlexGap>
+                <TextField label="Product name" value={form.productName} onChange={(e) => setField("productName", e.target.value)} required fullWidth />
+                <TextField label="Supplier name" value={form.supplierNameRaw} onChange={(e) => setField("supplierNameRaw", e.target.value)} fullWidth />
+                <TextField select label="Linked supplier" value={form.supplierId} onChange={(e) => setField("supplierId", e.target.value)} fullWidth>
+                  <MenuItem value="">No linked supplier</MenuItem>
+                  {supplierOptions.map((supplier) => (
+                    <MenuItem key={supplier.id} value={supplier.id}>{supplier.name}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField label="Revision date (YYYY-MM-DD)" type="date" value={form.revisionDate} onChange={(e) => setField("revisionDate", e.target.value)} fullWidth />
+                <TextField label="Expiry date (YYYY-MM-DD)" type="date" value={form.expiryDate} onChange={(e) => setField("expiryDate", e.target.value)} fullWidth />
+                <TextField label="Language" value={form.language} onChange={(e) => setField("language", e.target.value)} fullWidth />
+                <TextField label="Country format" value={form.countryFormat} onChange={(e) => setField("countryFormat", e.target.value)} fullWidth />
+                <TextField select label="Document status" value={form.status} onChange={(e) => setField("status", e.target.value)} fullWidth>
+                  <MenuItem value="active">active</MenuItem>
+                  <MenuItem value="pending_review">pending_review</MenuItem>
+                  <MenuItem value="archived">archived</MenuItem>
+                </TextField>
+              </Stack>
+            </Card>
 
-            <section className={`${panel} p-6`}>
-              <h3 className={sectionTitle}>Operational summary</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <Field label="Intended use">
-                  <textarea className={textareaClass} value={formState.summary.intendedUse} onChange={(e) => updateSummaryField("intendedUse", e.target.value)} />
-                </Field>
-                <Field label="Emergency phone">
-                  <input className={inputClass} value={formState.summary.emergencyPhone} onChange={(e) => updateSummaryField("emergencyPhone", e.target.value)} />
-                </Field>
-              </div>
-            </section>
-
-            <section className={`${panel} p-6`}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className={sectionTitle}>Hazards</h3>
-                <div className="flex flex-wrap gap-2">
-                  {pictogramOptions.map((code) => {
-                    const active = formState.hazards.pictograms.includes(code);
-                    return (
-                      <button
-                        key={code}
-                        type="button"
-                        onClick={() => togglePictogram(code)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active ? "border-emerald-500 bg-emerald-100 text-emerald-800" : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"}`}
-                      >
-                        {code}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-6 lg:grid-cols-2">
-                <ListEditor
-                  title="Hazard statements"
-                  values={formState.hazards.hazardStatements}
-                  onChange={(index, value) => updateListField("hazardStatements", index, value)}
-                  onAdd={() => addListItem("hazardStatements")}
-                />
-                <ListEditor
-                  title="Precautionary statements"
-                  values={formState.hazards.precautionaryStatements}
-                  onChange={(index, value) => updateListField("precautionaryStatements", index, value)}
-                  onAdd={() => addListItem("precautionaryStatements")}
-                />
-              </div>
-            </section>
-
-            <GridSection title="First aid">
-              <TextAreaField label="Inhalation" value={formState.firstAid.inhalation} onChange={(value) => updateNestedTextGroup("firstAid", "inhalation", value)} />
-              <TextAreaField label="Skin contact" value={formState.firstAid.skinContact} onChange={(value) => updateNestedTextGroup("firstAid", "skinContact", value)} />
-              <TextAreaField label="Eye contact" value={formState.firstAid.eyeContact} onChange={(value) => updateNestedTextGroup("firstAid", "eyeContact", value)} />
-              <TextAreaField label="Ingestion" value={formState.firstAid.ingestion} onChange={(value) => updateNestedTextGroup("firstAid", "ingestion", value)} />
-            </GridSection>
-
-            <GridSection title="Fire response">
-              <TextAreaField label="Extinguishing media" value={formState.fireResponse.extinguishingMedia} onChange={(value) => updateNestedTextGroup("fireResponse", "extinguishingMedia", value)} />
-              <TextAreaField label="Special hazards" value={formState.fireResponse.specialHazards} onChange={(value) => updateNestedTextGroup("fireResponse", "specialHazards", value)} />
-              <TextAreaField label="Protective equipment" value={formState.fireResponse.protectiveEquipment} onChange={(value) => updateNestedTextGroup("fireResponse", "protectiveEquipment", value)} />
-            </GridSection>
-
-            <GridSection title="Spill handling">
-              <TextAreaField label="Personal precautions" value={formState.spillHandling.personalPrecautions} onChange={(value) => updateNestedTextGroup("spillHandling", "personalPrecautions", value)} />
-              <TextAreaField label="Environmental precautions" value={formState.spillHandling.environmentalPrecautions} onChange={(value) => updateNestedTextGroup("spillHandling", "environmentalPrecautions", value)} />
-              <TextAreaField label="Cleanup methods" value={formState.spillHandling.cleanupMethods} onChange={(value) => updateNestedTextGroup("spillHandling", "cleanupMethods", value)} />
-            </GridSection>
-
-            <GridSection title="Handling and storage">
-              <TextAreaField label="Safe handling" value={formState.handlingStorage.safeHandling} onChange={(value) => updateNestedTextGroup("handlingStorage", "safeHandling", value)} />
-              <TextAreaField label="Safe storage" value={formState.handlingStorage.safeStorage} onChange={(value) => updateNestedTextGroup("handlingStorage", "safeStorage", value)} />
-              <TextAreaField label="Incompatible materials" value={formState.handlingStorage.incompatibleMaterials} onChange={(value) => updateNestedTextGroup("handlingStorage", "incompatibleMaterials", value)} />
-            </GridSection>
-
-            <GridSection title="Exposure control / PPE">
-              <TextAreaField label="Exposure limits" value={formState.exposureControl.exposureLimits} onChange={(value) => updateNestedTextGroup("exposureControl", "exposureLimits", value)} />
-              <TextAreaField label="Engineering controls" value={formState.exposureControl.engineeringControls} onChange={(value) => updateNestedTextGroup("exposureControl", "engineeringControls", value)} />
-              <TextAreaField label="PPE" value={formState.exposureControl.ppe} onChange={(value) => updateNestedTextGroup("exposureControl", "ppe", value)} />
-            </GridSection>
-
-            <section className={`${panel} p-6`}>
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className={sectionTitle}>Composition</h3>
-                <button type="button" onClick={addComponent} className={`${buttonBase} border border-slate-300 bg-white text-slate-700 hover:border-slate-400`}>
-                  + Add component
-                </button>
-              </div>
-              <div className="space-y-4">
-                {formState.composition.components.map((component, index) => (
-                  <div key={index} className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-5">
-                    <Field label="Substance name">
-                      <input className={inputClass} value={component.substanceName} onChange={(e) => updateComponent(index, "substanceName", e.target.value)} />
-                    </Field>
-                    <Field label="CAS number">
-                      <input className={inputClass} value={component.casNumber} onChange={(e) => updateComponent(index, "casNumber", e.target.value)} />
-                    </Field>
-                    <Field label="EC number">
-                      <input className={inputClass} value={component.ecNumber} onChange={(e) => updateComponent(index, "ecNumber", e.target.value)} />
-                    </Field>
-                    <Field label="Concentration min %">
-                      <input className={inputClass} value={component.concentrationMin} onChange={(e) => updateComponent(index, "concentrationMin", e.target.value)} />
-                    </Field>
-                    <Field label="Concentration max %">
-                      <input className={inputClass} value={component.concentrationMax} onChange={(e) => updateComponent(index, "concentrationMax", e.target.value)} />
-                    </Field>
-                  </div>
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 1 }}>Mini SDS sections</Typography>
+              <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
+                Keep the content concise. JSON is generated directly into `sds_documents + sds_sections + sds_supplier_links`-friendly structure.
+              </Typography>
+              <Stack spacing={2}>
+                {sectionDefinitions.map((section) => (
+                  <Box key={section.key}>
+                    <Typography sx={{ mb: 1, fontSize: 13, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
+                      Section {section.number} — {section.title}
+                    </Typography>
+                    <TextField
+                      multiline
+                      minRows={3}
+                      fullWidth
+                      value={form[section.key]}
+                      onChange={(e) => setField(section.key, e.target.value)}
+                    />
+                  </Box>
                 ))}
-              </div>
-            </section>
+              </Stack>
+            </Card>
 
-            <GridSection title="Transport and disposal">
-              <TextAreaField label="UN number" value={formState.transportDisposal.unNumber} onChange={(value) => updateNestedTextGroup("transportDisposal", "unNumber", value)} />
-              <TextAreaField label="Transport hazard class" value={formState.transportDisposal.transportHazardClass} onChange={(value) => updateNestedTextGroup("transportDisposal", "transportHazardClass", value)} />
-              <TextAreaField label="Packing group" value={formState.transportDisposal.packingGroup} onChange={(value) => updateNestedTextGroup("transportDisposal", "packingGroup", value)} />
-              <TextAreaField label="Waste handling" value={formState.transportDisposal.wasteHandling} onChange={(value) => updateNestedTextGroup("transportDisposal", "wasteHandling", value)} />
-            </GridSection>
-          </form>
-
-          <section className={`${panel} p-6`}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <h3 className={sectionTitle}>Generated JSON</h3>
-                <p className="mt-1 text-sm text-slate-600">This is the payload returned by form submission and ready to hand off to the backend.</p>
-              </div>
-            </div>
-            <pre className="max-h-[560px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-emerald-200">{lastSubmittedJson || JSON.stringify(formState, null, 2)}</pre>
-          </section>
-        </main>
-      </div>
-    </div>
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Box>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800 }}>Generated backend JSON</Typography>
+                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+                    Uses backend model shape: `document`, `supplierIds`, `sections`.
+                  </Typography>
+                </Box>
+                <ChemRegButton variant="primary" onClick={handleSubmit}>
+                  Save & generate JSON
+                </ChemRegButton>
+              </Stack>
+              <Divider sx={{ mb: 2 }} />
+              <Box component="pre" sx={{ m: 0, p: 2, borderRadius: 2, bgcolor: "#0f172a", color: "#d1fae5", overflowX: "auto", fontSize: 12, lineHeight: 1.6 }}>
+                {generatedJson || JSON.stringify(payloadFromForm(form), null, 2)}
+              </Box>
+            </Card>
+          </Stack>
+        </DialogContent>
+      </Dialog>
+    </Box>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label>
-      <span className={labelClass}>{label}</span>
-      {children}
-    </label>
-  );
+function chipBaseSx(bgcolor: string, color = "text.primary") {
+  return {
+    bgcolor,
+    color,
+    fontWeight: 600,
+    fontSize: 12,
+  };
 }
 
-function TextAreaField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return (
-    <Field label={label}>
-      <textarea className={textareaClass} value={value} onChange={(event) => onChange(event.target.value)} />
-    </Field>
-  );
-}
+const tableHeadCellSx = {
+  fontWeight: 700,
+  fontSize: 11,
+  color: "text.secondary",
+  textTransform: "uppercase",
+};
 
-function GridSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className={`${panel} p-6`}>
-      <h3 className={sectionTitle}>{title}</h3>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
-  );
-}
-
-function ListEditor({ title, values, onChange, onAdd }: { title: string; values: string[]; onChange: (index: number, value: string) => void; onAdd: () => void }) {
-  return (
-    <div>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-        <button type="button" onClick={onAdd} className={`${buttonBase} border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 hover:border-slate-400`}>
-          + Add line
-        </button>
-      </div>
-      <div className="space-y-3">
-        {values.map((value, index) => (
-          <textarea key={`${title}-${index}`} className={textareaClass} value={value} onChange={(event) => onChange(index, event.target.value)} />
-        ))}
-      </div>
-    </div>
-  );
+function extractCasPreview(compositionText: string) {
+  const match = compositionText.match(/\b\d{2,7}-\d{2}-\d\b/);
+  return match?.[0] ?? "";
 }
