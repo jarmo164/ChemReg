@@ -16,6 +16,10 @@ export interface LoginResponse {
   authenticated: boolean;
   message: string;
   loggedInAt: string;
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  accessTokenExpiresAt: string;
   user: UserResponse;
 }
 
@@ -25,6 +29,13 @@ export function login(email: string, password: string): Promise<LoginResponse> {
     email,
     password,
   });
+}
+
+export interface TokenRefreshResponse {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  accessTokenExpiresAt: string;
 }
 
 export function register(name: string, email: string, password: string): Promise<UserResponse> {

@@ -2,7 +2,7 @@ import { useState, FormEvent, ChangeEvent } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
-import { setAuthToken, setAuthUser } from '../auth/auth';
+import { setAuthSession } from '../auth/auth';
 import { login } from '../api/auth';
 
 const Login = () => {
@@ -21,15 +21,20 @@ const Login = () => {
     try {
       const response = await login(email, password);
 
-      if (response.authenticated && response.user) {
-        setAuthToken(response.loggedInAt);
-        setAuthUser({
-          id: response.user.id,
-          tenantId: response.user.tenantId,
-          email: response.user.email,
-          name: response.user.name,
-          role: response.user.role,
-          status: response.user.status,
+      if (response.authenticated && response.user && response.accessToken && response.refreshToken) {
+        setAuthSession({
+          accessToken: response.accessToken,
+          refreshToken: response.refreshToken,
+          tokenType: response.tokenType || 'Bearer',
+          accessTokenExpiresAt: response.accessTokenExpiresAt,
+          user: {
+            id: response.user.id,
+            tenantId: response.user.tenantId,
+            email: response.user.email,
+            name: response.user.name,
+            role: response.user.role,
+            status: response.user.status,
+          },
         });
         const from = (location.state as any)?.from?.pathname;
         navigate(from || '/dashboard', { replace: true });

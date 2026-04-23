@@ -1,4 +1,13 @@
 import { API_BASE_URL } from './config';
+import {
+  clearAuthSession,
+  getAuthToken,
+  getRefreshToken,
+  getTokenType,
+  isAccessTokenExpired,
+  updateAuthTokens,
+} from '../auth/auth';
+import type { TokenRefreshResponse } from './auth';
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -30,11 +39,76 @@ async function handleErrors(response: Response): Promise<never> {
   throw error;
 }
 
+function buildHeaders(includeJsonContentType = true): HeadersInit {
+  const headers: Record<string, string> = {
+    'X-XSRF-TOKEN': getCookie('XSRF-TOKEN') || '',
+  };
+
+  if (includeJsonContentType) {
+    headers['Content-Type'] = 'application/json;charset=UTF-8';
+  }
+
+  const accessToken = getAuthToken();
+  if (accessToken) {
+    headers.Authorization = `${getTokenType()} ${accessToken}`;
+  }
+
+  return headers;
+}
+
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearAuthSession();
+    return false;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    method: 'POST',
+    headers: buildHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!response.ok) {
+    clearAuthSession();
+    return false;
+  }
+
+  const payload = (await response.json()) as TokenRefreshResponse;
+  updateAuthTokens({
+    accessToken: payload.accessToken,
+    refreshToken: payload.refreshToken,
+    tokenType: payload.tokenType,
+    accessTokenExpiresAt: payload.accessTokenExpiresAt,
+  });
+
+  return true;
+}
+
+async function maybeRefreshBeforeRequest(appendUrl: string): Promise<void> {
+  if (appendUrl.startsWith('/api/auth/login') || appendUrl.startsWith('/api/auth/refresh')) {
+    return;
+  }
+
+  const hasRefreshToken = Boolean(getRefreshToken());
+  const hasAccessToken = Boolean(getAuthToken());
+
+  if (!hasRefreshToken || !hasAccessToken) {
+    return;
+  }
+
+  if (isAccessTokenExpired()) {
+    await refreshAccessToken();
+  }
+}
+
 async function request<T>(
   method: string,
   appendUrl: string,
   dto?: any,
-  urlParams?: object
+  urlParams?: object,
+  retryOnUnauthorized = true
 ): Promise<T> {
   let url = API_BASE_URL + appendUrl;
 
@@ -42,12 +116,11 @@ async function request<T>(
     url += '?' + new URLSearchParams(serializeUrl(urlParams)).toString();
   }
 
+  await maybeRefreshBeforeRequest(appendUrl);
+
   const requestParams: RequestInit = {
     method,
-    headers: {
-      'Content-Type': 'application/json;charset=UTF-8',
-      'X-XSRF-TOKEN': getCookie('XSRF-TOKEN') || '',
-    },
+    headers: buildHeaders(),
     credentials: 'include',
   };
 
@@ -55,13 +128,22 @@ async function request<T>(
     requestParams.body = JSON.stringify(dto);
   }
 
-  const response = await fetch(url, requestParams);
+  let response = await fetch(url, requestParams);
+
+  if (response.status === 401 && retryOnUnauthorized && !appendUrl.startsWith('/api/auth/')) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      response = await fetch(url, {
+        ...requestParams,
+        headers: buildHeaders(),
+      });
+    }
+  }
 
   if (!response.ok) {
     await handleErrors(response);
   }
 
-  // Handle empty responses
   const text = await response.text();
   if (!text) {
     return {} as T;
