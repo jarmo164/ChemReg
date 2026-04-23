@@ -5,6 +5,7 @@ import com.chemreg.chemreg.auth.repository.UserCredentialRepository;
 import com.chemreg.chemreg.common.enums.UserStatus;
 import com.chemreg.chemreg.common.exception.BadRequestException;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
+import com.chemreg.chemreg.common.security.AuthorizationRules;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import com.chemreg.chemreg.user.dto.CreateUserRequest;
@@ -40,7 +41,7 @@ public class UserService {
     }
 
     @Transactional
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.ORG_ADMIN_ONLY)
     public UserResponse createUser(CreateUserRequest request) {
         Tenant tenant = tenantRepository.findById(request.getTenantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + request.getTenantId()));

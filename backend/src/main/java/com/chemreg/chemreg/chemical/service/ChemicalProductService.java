@@ -7,6 +7,7 @@ import com.chemreg.chemreg.chemical.dto.SaveChemicalProductRequest;
 import com.chemreg.chemreg.chemical.entity.ChemicalProduct;
 import com.chemreg.chemreg.chemical.repository.ChemicalProductRepository;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
+import com.chemreg.chemreg.common.security.AuthorizationRules;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import jakarta.transaction.Transactional;
@@ -34,7 +35,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ChemicalProductResponse create(SaveChemicalProductRequest request) {
         stubTenantProvisioner.ensureStubTenantExists();
         Tenant tenant = tenantRepository.findById(ChemicalIntegrationStubs.STUB_TENANT_ID)
@@ -53,7 +54,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
     public List<ChemicalProductResponse> listAllForStubTenant() {
         return chemicalProductRepository.findByTenantId(ChemicalIntegrationStubs.STUB_TENANT_ID).stream()
                 .map(this::toResponse)
@@ -61,7 +62,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
     public ChemicalProductResponse getById(UUID id) {
         ChemicalProduct product = chemicalProductRepository
                 .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
@@ -70,7 +71,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ChemicalProductResponse update(UUID id, SaveChemicalProductRequest request) {
         ChemicalProduct product = chemicalProductRepository
                 .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
@@ -83,7 +84,7 @@ public class ChemicalProductService {
     }
 
     @Transactional
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public void delete(UUID id) {
         ChemicalProduct product = chemicalProductRepository
                 .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)

@@ -1,5 +1,6 @@
 package com.chemreg.chemreg.user.controller;
 
+import com.chemreg.chemreg.common.security.AuthorizationRules;
 import com.chemreg.chemreg.user.dto.CreateUserRequest;
 import com.chemreg.chemreg.user.dto.UserResponse;
 import com.chemreg.chemreg.user.service.UserService;
@@ -25,7 +26,7 @@ public class UserController {
 
     @Operation(security = {})
     @PostMapping("/register")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.ORG_ADMIN_ONLY)
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(request));
     }

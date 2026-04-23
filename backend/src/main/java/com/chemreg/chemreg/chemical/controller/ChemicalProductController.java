@@ -3,6 +3,7 @@ package com.chemreg.chemreg.chemical.controller;
 import com.chemreg.chemreg.chemical.dto.ChemicalProductResponse;
 import com.chemreg.chemreg.chemical.dto.SaveChemicalProductRequest;
 import com.chemreg.chemreg.chemical.service.ChemicalProductService;
+import com.chemreg.chemreg.common.security.AuthorizationRules;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,25 +31,25 @@ public class ChemicalProductController {
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
     public ResponseEntity<List<ChemicalProductResponse>> list() {
         return ResponseEntity.ok(chemicalProductService.listAllForStubTenant());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
     public ResponseEntity<ChemicalProductResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(chemicalProductService.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ResponseEntity<ChemicalProductResponse> create(@Valid @RequestBody SaveChemicalProductRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(chemicalProductService.create(request));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ResponseEntity<ChemicalProductResponse> update(
             @PathVariable UUID id,
             @Valid @RequestBody SaveChemicalProductRequest request
@@ -57,7 +58,7 @@ public class ChemicalProductController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         chemicalProductService.delete(id);
         return ResponseEntity.noContent().build();
