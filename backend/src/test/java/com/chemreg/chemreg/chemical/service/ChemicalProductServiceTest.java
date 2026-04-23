@@ -1,0 +1,65 @@
+package com.chemreg.chemreg.chemical.service;
+
+import com.chemreg.chemreg.chemical.dto.SaveChemicalProductRequest;
+import com.chemreg.chemreg.chemical.entity.ChemicalProduct;
+import com.chemreg.chemreg.chemical.repository.ChemicalProductRepository;
+import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
+import com.chemreg.chemreg.common.security.CurrentAccessContext;
+import com.chemreg.chemreg.tenant.repository.TenantRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class ChemicalProductServiceTest {
+
+    @Mock
+    private ChemicalProductRepository chemicalProductRepository;
+    @Mock
+    private TenantRepository tenantRepository;
+    @Mock
+    private CurrentAccessContext currentAccessContext;
+
+    private ChemicalProductService chemicalProductService;
+
+    @BeforeEach
+    void setUp() {
+        chemicalProductService = new ChemicalProductService(
+                chemicalProductRepository,
+                tenantRepository,
+                currentAccessContext
+        );
+    }
+
+    @Test
+    void listUsesAuthenticatedTenantScope() {
+        UUID tenantId = UUID.randomUUID();
+        when(currentAccessContext.currentTenantId()).thenReturn(tenantId);
+        when(chemicalProductRepository.findByTenantId(tenantId)).thenReturn(java.util.List.of());
+
+        chemicalProductService.listAllForCurrentTenant();
+
+        verify(chemicalProductRepository).findByTenantId(tenantId);
+    }
+
+    @Test
+    void getByIdRejectsCrossTenantDirectObjectAccess() {
+        UUID tenantId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        when(currentAccessContext.currentTenantId()).thenReturn(tenantId);
+        when(chemicalProductRepository.findByIdAndTenant_Id(productId, tenantId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> chemicalProductService.getById(productId));
+
+        verify(chemicalProductRepository).findByIdAndTenant_Id(productId, tenantId);
+    }
+}

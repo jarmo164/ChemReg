@@ -1,13 +1,12 @@
 package com.chemreg.chemreg.chemical.service;
 
-import com.chemreg.chemreg.chemical.ChemicalIntegrationStubs;
-import com.chemreg.chemreg.chemical.StubTenantProvisioner;
 import com.chemreg.chemreg.chemical.dto.ChemicalProductResponse;
 import com.chemreg.chemreg.chemical.dto.SaveChemicalProductRequest;
 import com.chemreg.chemreg.chemical.entity.ChemicalProduct;
 import com.chemreg.chemreg.chemical.repository.ChemicalProductRepository;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
 import com.chemreg.chemreg.common.security.AuthorizationRules;
+import com.chemreg.chemreg.common.security.CurrentAccessContext;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import jakarta.transaction.Transactional;
@@ -22,25 +21,25 @@ public class ChemicalProductService {
 
     private final ChemicalProductRepository chemicalProductRepository;
     private final TenantRepository tenantRepository;
-    private final StubTenantProvisioner stubTenantProvisioner;
+    private final CurrentAccessContext currentAccessContext;
 
     public ChemicalProductService(
             ChemicalProductRepository chemicalProductRepository,
             TenantRepository tenantRepository,
-            StubTenantProvisioner stubTenantProvisioner
+            CurrentAccessContext currentAccessContext
     ) {
         this.chemicalProductRepository = chemicalProductRepository;
         this.tenantRepository = tenantRepository;
-        this.stubTenantProvisioner = stubTenantProvisioner;
+        this.currentAccessContext = currentAccessContext;
     }
 
     @Transactional
     @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ChemicalProductResponse create(SaveChemicalProductRequest request) {
-        stubTenantProvisioner.ensureStubTenantExists();
-        Tenant tenant = tenantRepository.findById(ChemicalIntegrationStubs.STUB_TENANT_ID)
+        UUID tenantId = currentAccessContext.currentTenantId();
+        Tenant tenant = tenantRepository.findById(tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Tenant not found: " + ChemicalIntegrationStubs.STUB_TENANT_ID));
+                        "Tenant not found: " + tenantId));
 
         ChemicalProduct product = new ChemicalProduct();
         product.setTenant(tenant);
@@ -55,8 +54,8 @@ public class ChemicalProductService {
 
     @Transactional
     @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
-    public List<ChemicalProductResponse> listAllForStubTenant() {
-        return chemicalProductRepository.findByTenantId(ChemicalIntegrationStubs.STUB_TENANT_ID).stream()
+    public List<ChemicalProductResponse> listAllForCurrentTenant() {
+        return chemicalProductRepository.findByTenantId(currentAccessContext.currentTenantId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -64,8 +63,9 @@ public class ChemicalProductService {
     @Transactional
     @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
     public ChemicalProductResponse getById(UUID id) {
+        UUID tenantId = currentAccessContext.currentTenantId();
         ChemicalProduct product = chemicalProductRepository
-                .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
+                .findByIdAndTenant_Id(id, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chemical product not found: " + id));
         return toResponse(product);
     }
@@ -73,8 +73,9 @@ public class ChemicalProductService {
     @Transactional
     @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public ChemicalProductResponse update(UUID id, SaveChemicalProductRequest request) {
+        UUID tenantId = currentAccessContext.currentTenantId();
         ChemicalProduct product = chemicalProductRepository
-                .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
+                .findByIdAndTenant_Id(id, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chemical product not found: " + id));
 
         applyRequestFields(product, request);
@@ -86,8 +87,9 @@ public class ChemicalProductService {
     @Transactional
     @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
     public void delete(UUID id) {
+        UUID tenantId = currentAccessContext.currentTenantId();
         ChemicalProduct product = chemicalProductRepository
-                .findByIdAndTenant_Id(id, ChemicalIntegrationStubs.STUB_TENANT_ID)
+                .findByIdAndTenant_Id(id, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chemical product not found: " + id));
         chemicalProductRepository.delete(product);
     }

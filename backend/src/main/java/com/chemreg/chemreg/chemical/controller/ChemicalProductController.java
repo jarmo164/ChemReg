@@ -33,7 +33,7 @@ public class ChemicalProductController {
     @GetMapping
     @PreAuthorize(AuthorizationRules.MVP_READ_ROLES)
     public ResponseEntity<List<ChemicalProductResponse>> list() {
-        return ResponseEntity.ok(chemicalProductService.listAllForStubTenant());
+        return ResponseEntity.ok(chemicalProductService.listAllForCurrentTenant());
     }
 
     @GetMapping("/{id}")

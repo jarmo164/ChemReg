@@ -174,6 +174,17 @@ Süsteem peab toetama ühekordset sisselogimist (SSO) läbi SAML 2.0 ja OIDC pro
 
 Süsteem peab olema mitme rentniku (multi-tenant) toega, tagades klientide andmete täieliku eraldatuse nii andmebaasi kui ka failisalvestuse tasemel. Isikuandmete kogumine peab olema minimaalne — ainult nimi, e-posti aadress ja roll. Andmete töötlemisel tuleb järgida GDPR nõudeid.
 
+### Tenant / site / location scoping reeglid (MVP)
+
+- **Tenant** on primaarne turvapiir. JWT-s olev `tenantId` määrab, milliseid andmeid tohib lugeda ja muuta.
+- **Direct-object access** peab alati kontrollima objekti kuulumist samasse tenantisse; ainult ID teadmine ei tohi anda ligipääsu.
+- **Site** kuulub tenantile ja kõik site-põhised päringud peavad olema alati tenant-filtreeritud.
+- **Location** kuulub saidile või teisele location'ile, aga pärimise ahela juur peab jääma samasse tenantisse.
+- **Org Admin** võib hallata ainult oma tenantit; ta ei tohi luua kasutajaid ega muuta andmeid teistes tenantites.
+- **EHS Manager** ja **Site Manager** võivad hallata oma tenantis MVP töövooge vastavalt rollimaatriksile.
+- **User**, **Auditor** ja **Supplier** on MVP-s vaikimisi lugemisõigustega rollid nendele moodulitele, kus eraldi write-õigust ei ole antud.
+- Kui saidi või location'i tase ei ole veel konkreetses moodulis realiseeritud, rakendatakse vähemalt tenant-scope kohe, mitte hiljem.
+
 ### 5.3. Jõudlus
 
 Otsingupäringutele vastamise aeg peab olema alla ühe sekundi. PDF-failide laadimine peab toimuma "laisa laadimisega" (lazy-load). Andmemahukad operatsioonid (SDS-ide import, metaandmete ekstraheerimine, regulatiivne märgistamine) peavad toimuma taustaprotsessidena, mitte blokeerima kasutajaliidest.

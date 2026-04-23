@@ -6,6 +6,7 @@ import com.chemreg.chemreg.common.enums.UserStatus;
 import com.chemreg.chemreg.common.exception.BadRequestException;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
 import com.chemreg.chemreg.common.security.AuthorizationRules;
+import com.chemreg.chemreg.common.security.CurrentAccessContext;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import com.chemreg.chemreg.user.dto.CreateUserRequest;
@@ -26,23 +27,30 @@ public class UserService {
     private final UserCredentialRepository userCredentialRepository;
     private final TenantRepository tenantRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CurrentAccessContext currentAccessContext;
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     public UserService(
             UserRepository userRepository,
             UserCredentialRepository userCredentialRepository,
             TenantRepository tenantRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            CurrentAccessContext currentAccessContext
     ) {
         this.userRepository = userRepository;
         this.userCredentialRepository = userCredentialRepository;
         this.tenantRepository = tenantRepository;
         this.passwordEncoder = passwordEncoder;
+        this.currentAccessContext = currentAccessContext;
     }
 
     @Transactional
     @PreAuthorize(AuthorizationRules.ORG_ADMIN_ONLY)
     public UserResponse createUser(CreateUserRequest request) {
+        if (!currentAccessContext.currentTenantId().equals(request.getTenantId())) {
+            throw new BadRequestException("Org Admin can only create users inside the authenticated tenant.");
+        }
+
         Tenant tenant = tenantRepository.findById(request.getTenantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + request.getTenantId()));
 
