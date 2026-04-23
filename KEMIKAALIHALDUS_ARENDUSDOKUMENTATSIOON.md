@@ -630,6 +630,18 @@ Teavitused saadetakse automaatselt järgmistel sündmustel: riskihinnangu esitam
 
 Arendus on jaotatud kolme etappi, et tagada kiireim väärtuse pakkumine ja võimaldada tagasiside kogumist varajases faasis. Iga etapp lõpeb toimiva tarkvaraversiooniga, mida saab kasutajatele demonstreerida.
 
+### 10.1. Scope tasemed
+
+Et vältida olukorda, kus üks dokument segab kokku MVP, hilisema tootelaienduse ja enterprise taseme nõuded, kasutatakse ChemRegis järgnevat scope-jaotust.
+
+| Tase | Eesmärk | Sisu |
+|---|---|---|
+| **Pilot-ready MVP** | Viia toode usaldusväärse esimese kliendi/piloodi tasemele | login + JWT/refresh tokenid, rollipõhine ligipääs MVP ulatuses, SDS põhitöövood, chemical registry, inventuur ja asukohad, baas-riskihinnang, vähemalt üks etiketi/PDF väljund, põhiraportid, testitav deploy |
+| **Post-MVP** | Tugevdada kasutusmugavust ja vähendada käsitööd | riskimallid, mobiilne inventuur, QR/vöötkood, täpsemad teavitused, laiendatud otsing, täiendavad raportid, parem UX-polish |
+| **Enterprise-only** | Suurte organisatsioonide ja rangema IT-governance vajadused | SAML/SSO, kohustuslik MFA, eraldi otsinguplatvorm, regulatiivsete nimekirjade automaatne import, kõrgemad SLA-d, keerukam multi-tenant operatsioonimudel |
+
+Kõik järgmised peatükid kasutavad seda jaotust vaikimisi: kui funktsioon ei ole eraldi märgitud pilot-ready MVP osaks, ei tohi seda käsitleda MVP väljalaske blokeerijana.
+
 ### MVP-1 (Nädalad 1–6): Põhifunktsionaalsus
 
 MVP-1 eesmärk on luua töötav SDS teek ja kemikaaliregister, mis on platvormi kõige kriitilisemad komponendid.
