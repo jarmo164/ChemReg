@@ -46,6 +46,13 @@ Praegune backend slice katab:
 - payload sisaldab `quantity`, `unit`, `status`, `containerType`, `barcode`, `qrCode`, `lotNumber`, `openedAt`, `expiryDate`, `minStock`
 - response tagastab lisaks `productName` ja `locationName`, et UI saaks kohe reaalse register-vaate ehitada
 
+## Inventory frontend status
+Praegune frontend slice katab:
+- eraldi `Inventory Register` route: `/inventory`
+- live laadimine `chemical-products`, `sites`, `locations`, `inventory-items` API-de pealt
+- inventory item create/update/delete dialog päris backendiga
+- otsing, status-filter ja basic low-stock summary chipid
+
 ## Tenant/site/location scope
 MVP-s kehtib järgmine scope:
 - tenant on primaarne eralduspiir kõikidele domeeniandmetele

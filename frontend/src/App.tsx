@@ -7,6 +7,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import ChemicalRegister from "./pages/ChemicalRegister";
+import InventoryRegister from "./pages/InventoryRegister";
 import SdsManagement from "./pages/SdsManagement";
 import RiskAssessments from "./pages/RiskAssessments";
 import Compliance from "./pages/Compliance";
@@ -45,6 +46,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/chemicals" element={<ChemicalRegister />} />
+                    <Route path="/inventory" element={<InventoryRegister />} />
                     <Route path="/sds" element={<SdsManagement />} />
                     <Route path="/risk" element={<RiskAssessments />} />
                     <Route path="/compliance" element={<Compliance />} />

@@ -82,6 +82,7 @@ Detailne tehniline vaade:
 - Chemical registry kannab nuud ka downstream-vajalikku baasmetaandmestikku: product code, supplier, default unit, storage class ja use description.
 - Site/location baas-API on olemas ning location parent peab jaama sama tenant'i sama site'i sisse.
 - Inventory item CRUD on olemas koos product/location linkage, quantity/unit, status, container, lot ja stock threshold valjadega.
+- Frontendis on nuud olemas live `Inventory Register` vaade, mis kasutab paris API-sid toodete, site'ide, location'ide ja inventory item'ite jaoks.
 - Automaatsete testide katvus on endiselt liiga napp inventuuri, riski ja E2E tasemel.
 - MVP funktsioonid (inventuur, riskihinnangu taisvood, raportid/labelid) on osaliselt planeeritud, mitte taielikult implementeeritud.
 
@@ -97,6 +98,7 @@ ChemRegi ei loeta pilot-ready seisus olevaks enne, kui allolev minimaalne valmid
 - chemical registry kannab parisandmetega minimaalset downstream-metaandmestikku labels/inventory/risk voogude jaoks
 - site/location haldus toimib tenant-scoped backend API kaudu ja annab inventuurile reaalse hierarhia aluse
 - inventory item CRUD toimib parisandmetega tenant-scoped backend API kaudu
+- inventory/register UI kasutab parisandmeid, mitte placeholder-lehte
 - chemical registry ja inventory + location flow toimivad parisandmetega
 - riskihinnangu baasvoog ja kinnitusring toimivad MVP ulatuses
 - vahemalt uks raport voi dokumendivaljund (nt label voi risk PDF) on kasutatav

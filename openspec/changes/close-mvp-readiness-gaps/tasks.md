@@ -20,7 +20,7 @@
 ## 4. Inventory and location workflows
 - [x] 4.1 Implement site and hierarchical location management.
 - [x] 4.2 Implement inventory item CRUD, status handling, quantity/unit fields, and product linkage.
-- [ ] 4.3 Deliver a real register/inventory UI instead of placeholder pages.
+- [x] 4.3 Deliver a real register/inventory UI instead of placeholder pages.
 - [ ] 4.4 Implement manifest/export basics for the MVP reporting path.
 - [ ] 4.5 Decide whether QR/barcode support is MVP-critical or should be post-MVP.
 

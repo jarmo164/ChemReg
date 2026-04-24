@@ -75,6 +75,7 @@ const navItems: Array<{ label: string; path: string; icon: Parameters<typeof Ico
   { label: "Dashboard", path: "/dashboard", icon: "home" },
   { label: "Profile", path: "/profile", icon: "user" },
   { label: "Chemical Register", path: "/chemicals", icon: "flask" },
+  { label: "Inventory Register", path: "/inventory", icon: "check" },
   { label: "SDS Management", path: "/sds", icon: "doc" },
   { label: "Risk Assessments", path: "/risk", icon: "shield" },
   { label: "Compliance", path: "/compliance", icon: "check" },
