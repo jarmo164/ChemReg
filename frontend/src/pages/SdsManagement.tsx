@@ -32,6 +32,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import ChemRegButton from '../components/ChemRegButton';
+import { openMiniSdsPrintPreview } from '../utils/miniSdsPdf';
 import StatusChip from '../components/StatusChip';
 import {
   createSdsDocument,
@@ -219,6 +220,21 @@ export default function SdsManagement() {
     setDialogOpen(true);
   };
 
+  const handleGenerateMiniSds = (id: string) => {
+    const existing = documents.find((document) => document.id === id);
+    if (!existing) {
+      setError('SDS document not found for generation');
+      return;
+    }
+
+    try {
+      openMiniSdsPrintPreview(existing);
+    } catch (err) {
+      const nextError = err as Error;
+      setError(nextError.message || 'Mini SDS generation failed');
+    }
+  };
+
   const closeDialog = () => {
     if (!isSaving) {
       setDialogOpen(false);
@@ -388,7 +404,7 @@ export default function SdsManagement() {
                       <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => openEditDialog(sds.id)}>
                         <ViewIcon sx={{ fontSize: 18 }} />
                       </IconButton>
-                      <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => openEditDialog(sds.id)}>
+                      <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => handleGenerateMiniSds(sds.id)}>
                         <DownloadIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Stack>
@@ -467,6 +483,11 @@ export default function SdsManagement() {
                 <ChemRegButton variant="primary" onClick={() => void handleSubmit()} disabled={isSaving}>
                   {isSaving ? 'Saving…' : 'Save SDS'}
                 </ChemRegButton>
+                {selectedId ? (
+                  <ChemRegButton variant="outline" onClick={() => handleGenerateMiniSds(selectedId)}>
+                    Generate mini SDS PDF
+                  </ChemRegButton>
+                ) : null}
               </Stack>
               <Divider sx={{ mb: 2 }} />
               <Box component="pre" sx={{ m: 0, p: 2, borderRadius: 2, bgcolor: '#0f172a', color: '#d1fae5', overflowX: 'auto', fontSize: 12, lineHeight: 1.6 }}>
