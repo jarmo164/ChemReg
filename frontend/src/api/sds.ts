@@ -57,6 +57,15 @@ export interface SaveSdsDocumentRequest {
   }>;
 }
 
+export interface SdsExtractionResponse {
+  documentId: string;
+  fileId: string;
+  filename: string;
+  status: 'success' | 'partial' | 'unsupported' | 'failed';
+  warnings: string[];
+  draft: SaveSdsDocumentRequest;
+}
+
 export function listSdsDocuments(): Promise<SdsDocument[]> {
   return apiGet<SdsDocument[]>('/api/sds-documents');
 }
@@ -107,7 +116,27 @@ export async function uploadSdsFile(id: string, file: File): Promise<SdsFile> {
   return (await response.json()) as SdsFile;
 }
 
-export async function openSdsFile(id: string, fileId: string, mode: 'preview' | 'download'): Promise<void> {
+export async function extractSdsFile(id: string, fileId: string): Promise<SdsExtractionResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/sds-documents/${id}/files/${fileId}/extract`, {
+    method: 'POST',
+    headers: buildAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    let message = 'SDS PDF extraction failed';
+    try {
+      const errorData = await response.json();
+      message = errorData.message || errorData.error || message;
+    } catch {
+      message = response.statusText || message;
+    }
+    throw new Error(message);
+  }
+
+  return (await response.json()) as SdsExtractionResponse;
+}
+
+export async function openSdsFile(id: string, fileId: string, mode: 'preview' | 'download', filename?: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/sds-documents/${id}/files/${fileId}/${mode}`, {
     method: 'GET',
     headers: buildAuthHeaders(),
@@ -134,7 +163,7 @@ export async function openSdsFile(id: string, fileId: string, mode: 'preview' | 
 
   const link = document.createElement('a');
   link.href = objectUrl;
-  link.download = fileId;
+  link.download = filename || fileId;
   document.body.appendChild(link);
   link.click();
   link.remove();

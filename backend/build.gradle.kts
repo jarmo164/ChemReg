@@ -20,6 +20,7 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
 
 
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

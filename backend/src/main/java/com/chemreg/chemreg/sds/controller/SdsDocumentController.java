@@ -2,9 +2,11 @@ package com.chemreg.chemreg.sds.controller;
 
 import com.chemreg.chemreg.sds.dto.SaveSdsDocumentRequest;
 import com.chemreg.chemreg.sds.dto.SdsDocumentResponse;
+import com.chemreg.chemreg.sds.dto.SdsExtractionResponse;
 import com.chemreg.chemreg.sds.dto.SdsFileResponse;
 import com.chemreg.chemreg.sds.service.SdsDocumentService;
 import com.chemreg.chemreg.sds.service.SdsFileService;
+import com.chemreg.chemreg.sds.service.SdsPdfExtractionService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.ContentDisposition;
@@ -31,10 +33,16 @@ public class SdsDocumentController {
 
     private final SdsDocumentService sdsDocumentService;
     private final SdsFileService sdsFileService;
+    private final SdsPdfExtractionService sdsPdfExtractionService;
 
-    public SdsDocumentController(SdsDocumentService sdsDocumentService, SdsFileService sdsFileService) {
+    public SdsDocumentController(
+            SdsDocumentService sdsDocumentService,
+            SdsFileService sdsFileService,
+            SdsPdfExtractionService sdsPdfExtractionService
+    ) {
         this.sdsDocumentService = sdsDocumentService;
         this.sdsFileService = sdsFileService;
+        this.sdsPdfExtractionService = sdsPdfExtractionService;
     }
 
     @GetMapping
@@ -60,6 +68,11 @@ public class SdsDocumentController {
     @PostMapping(path = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<SdsFileResponse> uploadFile(@PathVariable UUID id, @RequestParam("file") MultipartFile file) {
         return ResponseEntity.status(HttpStatus.CREATED).body(sdsFileService.upload(id, file));
+    }
+
+    @PostMapping("/{documentId}/files/{fileId}/extract")
+    public ResponseEntity<SdsExtractionResponse> extractFromFile(@PathVariable UUID documentId, @PathVariable UUID fileId) {
+        return ResponseEntity.ok(sdsPdfExtractionService.extract(documentId, fileId));
     }
 
     @GetMapping("/{documentId}/files/{fileId}/download")

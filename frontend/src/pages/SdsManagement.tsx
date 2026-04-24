@@ -37,11 +37,13 @@ import { openMiniSdsPrintPreview } from '../utils/miniSdsPdf';
 import StatusChip from '../components/StatusChip';
 import {
   createSdsDocument,
+  extractSdsFile,
   listSdsDocuments,
   openSdsFile,
   updateSdsDocument,
   uploadSdsFile,
   type BackendSdsStatus,
+  type SdsExtractionResponse,
   type SaveSdsDocumentRequest,
   type SdsDocument,
   type SdsFile,
@@ -151,6 +153,8 @@ export default function SdsManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [error, setError] = useState('');
+  const [extractionStatus, setExtractionStatus] = useState<SdsExtractionResponse['status'] | null>(null);
+  const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadDocuments() {
@@ -220,6 +224,8 @@ export default function SdsManagement() {
     setSelectedId(null);
     setForm(createEmptyForm());
     setGeneratedJson('');
+    setExtractionStatus(null);
+    setExtractionWarnings([]);
     resetFilePicker();
     setDialogOpen(true);
   };
@@ -232,6 +238,8 @@ export default function SdsManagement() {
     setSelectedId(id);
     setForm(formFromDocument(existing));
     setGeneratedJson(JSON.stringify(payloadFromForm(formFromDocument(existing)), null, 2));
+    setExtractionStatus(null);
+    setExtractionWarnings([]);
     resetFilePicker();
     setDialogOpen(true);
   };
@@ -265,13 +273,9 @@ export default function SdsManagement() {
   };
 
   const persistCurrentDocument = async (): Promise<SdsDocument> => {
-    if (!form.productName.trim()) {
-      throw new Error('Product name is required before uploading a PDF');
-    }
-
     const payload = payloadFromForm(form);
-    if (payload.sections.length === 0) {
-      throw new Error('At least one SDS section is required before uploading a PDF');
+    if (!payload.document.productName.trim()) {
+      payload.document.productName = 'Imported SDS';
     }
 
     const saved = selectedId
@@ -283,6 +287,51 @@ export default function SdsManagement() {
     setMode('edit');
     setGeneratedJson(JSON.stringify(payload, null, 2));
     return saved;
+  };
+
+  const mergeDraftIntoForm = (draft: SaveSdsDocumentRequest) => {
+    setForm((current) => {
+      const next = createEmptyForm();
+      next.productName = draft.document.productName || current.productName;
+      next.supplierNameRaw = draft.document.supplierNameRaw || current.supplierNameRaw;
+      next.language = draft.document.language || current.language;
+      next.countryFormat = draft.document.countryFormat || current.countryFormat;
+      next.revisionDate = draft.document.revisionDate || current.revisionDate;
+      next.expiryDate = draft.document.expiryDate || current.expiryDate;
+      next.status = draft.document.status || current.status;
+
+      for (const section of draft.sections) {
+        const definition = sectionDefinitions.find((item) => item.number === section.sectionNumber);
+        if (definition) {
+          next[definition.key] = section.content;
+        }
+      }
+
+      for (const section of sectionDefinitions) {
+        if (!next[section.key]) {
+          next[section.key] = current[section.key];
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const runPdfExtraction = async (documentId: string, fileId: string) => {
+    const extraction = await extractSdsFile(documentId, fileId);
+    setExtractionStatus(extraction.status);
+    setExtractionWarnings(extraction.warnings);
+    mergeDraftIntoForm(extraction.draft);
+    setGeneratedJson(JSON.stringify(extraction.draft, null, 2));
+  };
+
+  const payloadForUploadDraft = (file: File): SaveSdsDocumentRequest => {
+    const payload = payloadFromForm(form);
+    if (!payload.document.productName.trim()) {
+      payload.document.productName = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim() || 'Imported SDS';
+    }
+    payload.document.status = 'pending_review';
+    return payload;
   };
 
   const handlePdfSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -299,10 +348,20 @@ export default function SdsManagement() {
 
     setIsUploadingFile(true);
     setError('');
+    setExtractionStatus(null);
+    setExtractionWarnings([]);
 
     try {
-      const savedDocument = await persistCurrentDocument();
-      await uploadSdsFile(savedDocument.id, file);
+      const savedDocument = selectedId
+        ? await persistCurrentDocument()
+        : await createSdsDocument(payloadForUploadDraft(file));
+
+      upsertDocument(savedDocument);
+      setSelectedId(savedDocument.id);
+      setMode('edit');
+
+      const uploadedFile = await uploadSdsFile(savedDocument.id, file);
+      await runPdfExtraction(savedDocument.id, uploadedFile.id);
       await loadDocuments();
     } catch (err) {
       const nextError = err as Error;
@@ -316,7 +375,9 @@ export default function SdsManagement() {
   const handleOpenFile = async (documentId: string, fileId: string, mode: 'preview' | 'download') => {
     setError('');
     try {
-      await openSdsFile(documentId, fileId, mode);
+      const document = documents.find((item) => item.id === documentId);
+      const file = document?.files.find((item) => item.id === fileId);
+      await openSdsFile(documentId, fileId, mode, file?.filename);
     } catch (err) {
       const nextError = err as Error;
       setError(nextError.message || `SDS file ${mode} failed`);
@@ -520,6 +581,19 @@ export default function SdsManagement() {
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={3}>
+            {extractionStatus ? (
+              <Alert severity={extractionStatus === 'success' ? 'success' : extractionStatus === 'partial' ? 'warning' : 'info'}>
+                {extractionStatus === 'success'
+                  ? 'PDF auto-prefill completed.'
+                  : extractionStatus === 'partial'
+                    ? 'PDF auto-prefill completed partially. Review the highlighted data carefully.'
+                    : extractionStatus === 'unsupported'
+                      ? 'PDF text extraction was not supported for this file. Continue manually.'
+                      : 'PDF extraction failed. Continue manually.'}
+                {extractionWarnings.length > 0 ? ` ${extractionWarnings.join(' ')}` : ''}
+              </Alert>
+            ) : null}
+
             <Card variant="outlined" sx={{ p: 2.5 }}>
               <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 2 }}>Document metadata</Typography>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }} useFlexGap>
@@ -626,6 +700,9 @@ export default function SdsManagement() {
                             </ChemRegButton>
                             <ChemRegButton variant="outline" onClick={() => void handleOpenFile(selectedId, file.id, 'download')}>
                               Download
+                            </ChemRegButton>
+                            <ChemRegButton variant="outline" onClick={() => void runPdfExtraction(selectedId, file.id)} disabled={isUploadingFile || isSaving}>
+                              Prefill
                             </ChemRegButton>
                           </Stack>
                         </Stack>
