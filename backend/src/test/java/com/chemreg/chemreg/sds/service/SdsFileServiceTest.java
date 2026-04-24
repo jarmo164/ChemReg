@@ -81,8 +81,17 @@ class SdsFileServiceTest {
         ArgumentCaptor<SdsFile> fileCaptor = ArgumentCaptor.forClass(SdsFile.class);
         verify(sdsFileRepository).save(fileCaptor.capture());
         SdsFile persistedWithStorageKey = fileCaptor.getValue();
-        verify(sdsBinaryStorage).store(documentId, persistedWithStorageKey.getId(), "sheet.pdf", "pdf-content".getBytes());
-        assertEquals(documentId + "/" + persistedWithStorageKey.getId() + "-sheet.pdf", persistedWithStorageKey.getS3Key());
+
+        ArgumentCaptor<UUID> storageFileIdCaptor = ArgumentCaptor.forClass(UUID.class);
+        verify(sdsBinaryStorage).store(
+                org.mockito.ArgumentMatchers.eq(documentId),
+                storageFileIdCaptor.capture(),
+                org.mockito.ArgumentMatchers.eq("sheet.pdf"),
+                org.mockito.ArgumentMatchers.eq("pdf-content".getBytes())
+        );
+
+        UUID storageFileId = storageFileIdCaptor.getValue();
+        assertEquals(documentId + "/" + storageFileId + "-sheet.pdf", persistedWithStorageKey.getS3Key());
         assertEquals(Boolean.TRUE, persistedWithStorageKey.getCurrent());
         assertEquals(Integer.valueOf("pdf-content".getBytes().length), persistedWithStorageKey.getFileSizeBytes());
     }
