@@ -7,6 +7,8 @@ import com.chemreg.chemreg.chemical.repository.ChemicalProductRepository;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
 import com.chemreg.chemreg.common.security.AuthorizationRules;
 import com.chemreg.chemreg.common.security.CurrentAccessContext;
+import com.chemreg.chemreg.sds.entity.SdsDocument;
+import com.chemreg.chemreg.sds.repository.SdsDocumentRepository;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import jakarta.transaction.Transactional;
@@ -21,15 +23,18 @@ public class ChemicalProductService {
 
     private final ChemicalProductRepository chemicalProductRepository;
     private final TenantRepository tenantRepository;
+    private final SdsDocumentRepository sdsDocumentRepository;
     private final CurrentAccessContext currentAccessContext;
 
     public ChemicalProductService(
             ChemicalProductRepository chemicalProductRepository,
             TenantRepository tenantRepository,
+            SdsDocumentRepository sdsDocumentRepository,
             CurrentAccessContext currentAccessContext
     ) {
         this.chemicalProductRepository = chemicalProductRepository;
         this.tenantRepository = tenantRepository;
+        this.sdsDocumentRepository = sdsDocumentRepository;
         this.currentAccessContext = currentAccessContext;
     }
 
@@ -43,10 +48,7 @@ public class ChemicalProductService {
 
         ChemicalProduct product = new ChemicalProduct();
         product.setTenant(tenant);
-        applyRequestFields(product, request);
-
-        // TODO(team/sds): When SDS linking API exists, set SdsDocument from a validated id for this tenant.
-        // New products intentionally have no SDS association from this endpoint.
+        applyRequestFields(product, request, tenantId);
 
         ChemicalProduct saved = chemicalProductRepository.save(product);
         return toResponse(saved);
@@ -78,8 +80,7 @@ public class ChemicalProductService {
                 .findByIdAndTenant_Id(id, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chemical product not found: " + id));
 
-        applyRequestFields(product, request);
-        // Do not modify sdsDocument here; SDS workstream will own linking.
+        applyRequestFields(product, request, tenantId);
 
         return toResponse(chemicalProductRepository.save(product));
     }
@@ -94,13 +95,32 @@ public class ChemicalProductService {
         chemicalProductRepository.delete(product);
     }
 
-    private void applyRequestFields(ChemicalProduct product, SaveChemicalProductRequest request) {
+    private void applyRequestFields(ChemicalProduct product, SaveChemicalProductRequest request, UUID tenantId) {
         product.setName(request.getName().trim());
-        product.setCasNumber(request.getCasNumber());
-        product.setEcNumber(request.getEcNumber());
+        product.setCasNumber(trimToNull(request.getCasNumber()));
+        product.setEcNumber(trimToNull(request.getEcNumber()));
         product.setSignalWord(request.getSignalWord());
         product.setPhysicalState(request.getPhysicalState());
         product.setRestricted(request.getRestricted() != null ? request.getRestricted() : Boolean.FALSE);
+        product.setSdsDocument(resolveScopedSdsDocument(request.getSdsDocumentId(), tenantId));
+    }
+
+    private SdsDocument resolveScopedSdsDocument(UUID sdsDocumentId, UUID tenantId) {
+        if (sdsDocumentId == null) {
+            return null;
+        }
+
+        return sdsDocumentRepository.findByIdAndTenant_Id(sdsDocumentId, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("SDS document not found: " + sdsDocumentId));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private ChemicalProductResponse toResponse(ChemicalProduct product) {

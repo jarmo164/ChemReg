@@ -8,5 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SdsSupplierLinkRepository extends JpaRepository<SdsSupplierLink, UUID> {
-List<SdsSupplierLink> findBySdsDocumentId(UUID sdsDocumentId);
+
+    List<SdsSupplierLink> findBySdsDocumentId(UUID sdsDocumentId);
+
+    void deleteBySdsDocumentId(UUID sdsDocumentId);
 }

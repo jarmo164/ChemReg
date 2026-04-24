@@ -40,6 +40,7 @@ import {
   type PhysicalState,
   type SaveChemicalProductRequest,
 } from '../api/chemicals';
+import { listSdsDocuments, type SdsDocument } from '../api/sds';
 
 type FilterSignalWord = 'all' | ChemicalSignalWord | 'none';
 type ChemicalForm = {
@@ -49,6 +50,7 @@ type ChemicalForm = {
   signalWord: '' | ChemicalSignalWord;
   physicalState: '' | PhysicalState;
   restricted: 'true' | 'false';
+  sdsDocumentId: string;
 };
 
 const emptyForm = (): ChemicalForm => ({
@@ -58,6 +60,7 @@ const emptyForm = (): ChemicalForm => ({
   signalWord: '',
   physicalState: '',
   restricted: 'false',
+  sdsDocumentId: '',
 });
 
 const signalWordOptions: ChemicalSignalWord[] = ['Danger', 'Warning'];
@@ -68,6 +71,7 @@ export default function ChemicalRegister() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [sdsDocuments, setSdsDocuments] = useState<SdsDocument[]>([]);
   const [search, setSearch] = useState('');
   const [signalWordFilter, setSignalWordFilter] = useState<FilterSignalWord>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -79,8 +83,12 @@ export default function ChemicalRegister() {
     setError('');
 
     try {
-      const data = await listChemicalProducts();
-      setChemicals(data);
+      const [chemicalData, sdsData] = await Promise.all([
+        listChemicalProducts(),
+        listSdsDocuments(),
+      ]);
+      setChemicals(chemicalData);
+      setSdsDocuments(sdsData);
     } catch (err) {
       const nextError = err as Error;
       setError(nextError.message || 'Failed to load chemical register');
@@ -130,6 +138,7 @@ export default function ChemicalRegister() {
       signalWord: chemical.signalWord ?? '',
       physicalState: chemical.physicalState ?? '',
       restricted: chemical.restricted ? 'true' : 'false',
+      sdsDocumentId: chemical.sdsDocumentId ?? '',
     });
     setDialogOpen(true);
   }
@@ -151,6 +160,7 @@ export default function ChemicalRegister() {
       signalWord: currentForm.signalWord || null,
       physicalState: currentForm.physicalState || null,
       restricted: currentForm.restricted === 'true',
+      sdsDocumentId: currentForm.sdsDocumentId || null,
     };
   }
 
@@ -202,7 +212,7 @@ export default function ChemicalRegister() {
         <Box>
           <Typography sx={{ fontSize: 24, fontWeight: 900, color: 'text.primary' }}>Chemical Register</Typography>
           <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
-            Live tenant-scoped chemical product registry backed by the API.
+            Live tenant-scoped chemical product registry backed by the API, with SDS linking from real documents.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
@@ -266,7 +276,7 @@ export default function ChemicalRegister() {
         >
           <WarningAmberIcon sx={{ fontSize: 18, color: '#b45309' }} />
           <Typography sx={{ fontSize: 13, color: '#92400e', fontWeight: 500 }}>
-            Restricted chemicals are visible. SDS linking is still a separate workstream, so linked SDS coverage is intentionally partial.
+            Restricted chemicals are visible. Link them to the correct SDS where available so downstream inventory and risk flows inherit the right document context.
           </Typography>
         </Box>
       )}
@@ -372,6 +382,21 @@ export default function ChemicalRegister() {
             <TextField select label="Restriction level" value={form.restricted} onChange={(event) => setField('restricted', event.target.value as ChemicalForm['restricted'])} fullWidth>
               <MenuItem value="false">Open</MenuItem>
               <MenuItem value="true">Restricted</MenuItem>
+            </TextField>
+            <TextField
+              select
+              label="Linked SDS"
+              value={form.sdsDocumentId}
+              onChange={(event) => setField('sdsDocumentId', event.target.value)}
+              fullWidth
+              helperText={sdsDocuments.length === 0 ? 'No SDS documents available for linking yet.' : 'Optional, but recommended for traceability.'}
+            >
+              <MenuItem value="">Not linked</MenuItem>
+              {sdsDocuments.map((document) => (
+                <MenuItem key={document.id} value={document.id}>
+                  {document.productName} {document.revisionDate ? `• ${document.revisionDate}` : ''}
+                </MenuItem>
+              ))}
             </TextField>
             <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
               <ChemRegButton variant="primary" onClick={() => void handleSubmit()} disabled={isSaving}>

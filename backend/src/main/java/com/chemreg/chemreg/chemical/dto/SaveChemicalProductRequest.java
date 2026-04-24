@@ -5,6 +5,8 @@ import com.chemreg.chemreg.common.enums.PhysicalState;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.UUID;
+
 public class SaveChemicalProductRequest {
 
     @NotBlank
@@ -22,6 +24,8 @@ public class SaveChemicalProductRequest {
     private PhysicalState physicalState;
 
     private Boolean restricted;
+
+    private UUID sdsDocumentId;
 
     public String getName() {
         return name;
@@ -69,5 +73,13 @@ public class SaveChemicalProductRequest {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    public UUID getSdsDocumentId() {
+        return sdsDocumentId;
+    }
+
+    public void setSdsDocumentId(UUID sdsDocumentId) {
+        this.sdsDocumentId = sdsDocumentId;
     }
 }

@@ -8,5 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SdsSectionRepository extends JpaRepository<SdsSection, UUID> {
-List<SdsSection> findBySdsDocumentIdOrderBySectionNumber(UUID sdsDocumentId);
+
+    List<SdsSection> findBySdsDocumentIdOrderBySectionNumber(UUID sdsDocumentId);
+
+    void deleteBySdsDocumentId(UUID sdsDocumentId);
 }

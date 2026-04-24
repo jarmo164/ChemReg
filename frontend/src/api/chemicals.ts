@@ -24,6 +24,7 @@ export interface SaveChemicalProductRequest {
   signalWord?: ChemicalSignalWord | null;
   physicalState?: PhysicalState | null;
   restricted?: boolean;
+  sdsDocumentId?: string | null;
 }
 
 export function listChemicalProducts(): Promise<ChemicalProduct[]> {

@@ -31,9 +31,9 @@ jobs:
         working-directory: backend
         run: chmod +x gradlew
 
-      - name: Build backend
+      - name: Test and build backend
         working-directory: backend
-        run: ./gradlew --no-daemon clean build -x test
+        run: ./gradlew --no-daemon clean build
 
       - name: Set up Node 20
         uses: actions/setup-node@v4
@@ -42,11 +42,18 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
 
       - name: Build frontend
         working-directory: frontend
         env:
+          CI: true
           REACT_APP_API_URL: https://chemreg.zapto.org
         run: npm run build
 

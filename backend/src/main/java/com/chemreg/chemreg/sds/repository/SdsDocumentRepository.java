@@ -8,5 +8,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SdsDocumentRepository extends JpaRepository<SdsDocument, UUID> {
-List<SdsDocument> findByTenantId(UUID tenantId);
+
+    List<SdsDocument> findByTenantId(UUID tenantId);
+
+    List<SdsDocument> findByTenantIdOrderByUpdatedAtDesc(UUID tenantId);
+
+    Optional<SdsDocument> findByIdAndTenant_Id(UUID id, UUID tenantId);
 }

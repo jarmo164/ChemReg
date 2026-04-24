@@ -45,8 +45,9 @@ Deploy voog:
 
 Auth seis kõrgtasemel:
 
-- Login voog backendi endpointiga on tootavas osas olemas.
-- Taielik sessiooni/tokeni elutsukkel (nt tugevam tokeni haldus ja taastumine 401 olukordadest) on veel arenduses.
+- Login/refresh/logout backend endpointid on olemas.
+- Frontend kasutab access + refresh token session mudelit ning proovib aegunud access tokeni enne API kutset uuendada.
+- 401 korral tehakse uks refresh-jargne retry; kui refresh ebaonnestub, sessioon puhastatakse.
 
 Detailne tehniline vaade:
 
@@ -64,16 +65,19 @@ Detailne tehniline vaade:
   - `POST /api/auth/login`
   - `POST /api/users`
   - `GET/POST/PUT/DELETE /api/chemical-products`
+  - `GET/POST/PUT /api/sds-documents`
+  - `POST /api/sds-documents/{id}/files`
+  - `GET /api/sds-documents/{documentId}/files/{fileId}/download`
+  - `GET /api/sds-documents/{documentId}/files/{fileId}/preview`
 - Flyway migratsioonide tugi ja PostgreSQL uhendus.
 - Deploy workflow GitHub Actionsis, mis buildib frontend + backend ning juurutab serverisse.
 
 ### Pooleli / jargmine samm
 
-- Sessiooni/tokeni mudel on praegu lihtsustatud: `localStorage` tokeniks salvestatakse login response'i `loggedInAt`, mitte eraldi juurdepaaasutoken.
-- API kliendikiht on olemas (`frontend/src/api/apiClient.ts`), kuid uhtne tokeni uuenduse/401 taaskaivituse strateegia vajab rakendamist.
-- Rakenduse HTTP turbekiht ja autoriseerimisreeglid vajavad laiendamist kogu API pinnal.
-- Automaatsete testide katvus on napp ning CI pipeline ei valiideri teste enne deployd.
-- MVP funktsioonid (SDS toovood, riskihinnangu taisvood, inventuur) on osaliselt planeeritud, mitte taielikult implementeeritud.
+- Rakenduse HTTP turbekiht ja autoriseerimisreeglid vajavad laiendamist kogu API pinnal, eriti inventuuri ja riski moodulites.
+- SDS failide storage on MVP-s kohaliku filesystem contractiga; hilisem S3/MinIO vahetus on endiselt eraldi infrastruktuuriotsus.
+- Automaatsete testide katvus on endiselt liiga napp inventuuri, riski ja E2E tasemel.
+- MVP funktsioonid (inventuur, riskihinnangu taisvood, raportid/labelid) on osaliselt planeeritud, mitte taielikult implementeeritud.
 
 ## Release bar: millal ChemReg on "ready"
 
@@ -83,7 +87,7 @@ ChemRegi ei loeta pilot-ready seisus olevaks enne, kui allolev minimaalne valmid
 
 - autentimine, sessiooni taastumine ja logout toimivad usaldusvaarsete tokenitega
 - RBAC ja scope-kontroll toimivad backendis, mitte ainult route-kihis
-- SDS loomine / uleslaadimine / detail / versioonihaldus toimib parisandmetega
+- SDS loomine / uleslaadimine / detail / versioonihaldus toimib parisandmetega kohaliku storage contracti peal
 - chemical registry ja inventory + location flow toimivad parisandmetega
 - riskihinnangu baasvoog ja kinnitusring toimivad MVP ulatuses
 - vahemalt uks raport voi dokumendivaljund (nt label voi risk PDF) on kasutatav
@@ -205,11 +209,9 @@ Detailne ja uuenev seis:
 
 Praegune seis:
 
-- Backendis on testisoltuvused olemas, aga testikate on minimaalne.
-- Frontendis on vaikimisi CRA testifail, mis ei peegelda tegelikku UI kasutusjuhtu.
-- Deploy workflow buildib, kuid:
-  - backend build kaib `-x test` lipuga
-  - frontendis `npm test` sammu ei kaivitata
+- Backendis on testisoltuvused olemas, kuid integration/E2E kate on endiselt napp.
+- Frontendis on olemas sessiooni ja API refresh loogika testid ning baas auth smoke-testid.
+- Deploy workflow peab kvaliteedibarri osana jooksutama teste enne deployd.
 
 Detailid ja soovituslik minimaalne testibaas:
 
