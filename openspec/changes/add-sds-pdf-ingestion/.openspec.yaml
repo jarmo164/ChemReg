@@ -1,0 +1,10 @@
+schema: spec-driven
+change:
+  id: add-sds-pdf-ingestion
+  title: Add SDS PDF upload, server storage, and assistive extraction flow
+  owners:
+    - Koodikratt
+  status: proposed
+capabilities:
+  - sds-and-chemical-registry
+  - operational-readiness
