@@ -64,8 +64,11 @@ Detailne tehniline vaade:
 - Backendis toimivad endpointid:
   - `POST /api/auth/login`
   - `POST /api/users`
-  - `GET/POST/PUT/DELETE /api/chemical-products`
+  - `GET/POST/PUT/DELETE /api/chemical-products` (now includes product code, supplier, default unit, storage class, use description, SDS link)
   - `GET/POST/PUT /api/sds-documents`
+- `GET/POST/PUT /api/sites`
+- `GET/POST/PUT /api/sites/{siteId}/locations`
+- `GET/POST/PUT/DELETE /api/inventory-items`
   - `POST /api/sds-documents/{id}/files`
   - `GET /api/sds-documents/{documentId}/files/{fileId}/download`
   - `GET /api/sds-documents/{documentId}/files/{fileId}/preview`
@@ -76,6 +79,9 @@ Detailne tehniline vaade:
 
 - Rakenduse HTTP turbekiht ja autoriseerimisreeglid vajavad laiendamist kogu API pinnal, eriti inventuuri ja riski moodulites.
 - SDS failide storage on MVP-s kohaliku filesystem contractiga; hilisem S3/MinIO vahetus on endiselt eraldi infrastruktuuriotsus.
+- Chemical registry kannab nuud ka downstream-vajalikku baasmetaandmestikku: product code, supplier, default unit, storage class ja use description.
+- Site/location baas-API on olemas ning location parent peab jaama sama tenant'i sama site'i sisse.
+- Inventory item CRUD on olemas koos product/location linkage, quantity/unit, status, container, lot ja stock threshold valjadega.
 - Automaatsete testide katvus on endiselt liiga napp inventuuri, riski ja E2E tasemel.
 - MVP funktsioonid (inventuur, riskihinnangu taisvood, raportid/labelid) on osaliselt planeeritud, mitte taielikult implementeeritud.
 
@@ -88,6 +94,9 @@ ChemRegi ei loeta pilot-ready seisus olevaks enne, kui allolev minimaalne valmid
 - autentimine, sessiooni taastumine ja logout toimivad usaldusvaarsete tokenitega
 - RBAC ja scope-kontroll toimivad backendis, mitte ainult route-kihis
 - SDS loomine / uleslaadimine / detail / versioonihaldus toimib parisandmetega kohaliku storage contracti peal
+- chemical registry kannab parisandmetega minimaalset downstream-metaandmestikku labels/inventory/risk voogude jaoks
+- site/location haldus toimib tenant-scoped backend API kaudu ja annab inventuurile reaalse hierarhia aluse
+- inventory item CRUD toimib parisandmetega tenant-scoped backend API kaudu
 - chemical registry ja inventory + location flow toimivad parisandmetega
 - riskihinnangu baasvoog ja kinnitusring toimivad MVP ulatuses
 - vahemalt uks raport voi dokumendivaljund (nt label voi risk PDF) on kasutatav

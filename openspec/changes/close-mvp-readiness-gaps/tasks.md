@@ -14,12 +14,12 @@
 - [x] 3.1 Implement SDS document entities, file storage contract, upload flow, and version management.
 - [x] 3.2 Expose live SDS APIs for list/detail/create/update/upload/download/preview.
 - [x] 3.3 Replace seeded/demo SDS frontend behavior with live API-backed flows and proper empty/error/loading states.
-- [ ] 3.4 Expand chemical product management to include the metadata needed by SDS, labels, inventory, and risk workflows.
+- [x] 3.4 Expand chemical product management to include the metadata needed by SDS, labels, inventory, and risk workflows.
 - [x] 3.5 Define the minimum searchable/filterable fields needed for MVP even if advanced full-text search is deferred.
 
 ## 4. Inventory and location workflows
-- [ ] 4.1 Implement site and hierarchical location management.
-- [ ] 4.2 Implement inventory item CRUD, status handling, quantity/unit fields, and product linkage.
+- [x] 4.1 Implement site and hierarchical location management.
+- [x] 4.2 Implement inventory item CRUD, status handling, quantity/unit fields, and product linkage.
 - [ ] 4.3 Deliver a real register/inventory UI instead of placeholder pages.
 - [ ] 4.4 Implement manifest/export basics for the MVP reporting path.
 - [ ] 4.5 Decide whether QR/barcode support is MVP-critical or should be post-MVP.

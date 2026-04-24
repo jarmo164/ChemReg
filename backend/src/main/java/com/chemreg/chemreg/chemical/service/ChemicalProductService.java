@@ -99,8 +99,13 @@ public class ChemicalProductService {
         product.setName(request.getName().trim());
         product.setCasNumber(trimToNull(request.getCasNumber()));
         product.setEcNumber(trimToNull(request.getEcNumber()));
+        product.setProductCode(trimToNull(request.getProductCode()));
+        product.setSupplierName(trimToNull(request.getSupplierName()));
         product.setSignalWord(request.getSignalWord());
         product.setPhysicalState(request.getPhysicalState());
+        product.setDefaultUnit(request.getDefaultUnit());
+        product.setStorageClass(trimToNull(request.getStorageClass()));
+        product.setUseDescription(trimToNull(request.getUseDescription()));
         product.setRestricted(request.getRestricted() != null ? request.getRestricted() : Boolean.FALSE);
         product.setSdsDocument(resolveScopedSdsDocument(request.getSdsDocumentId(), tenantId));
     }
@@ -135,8 +140,13 @@ public class ChemicalProductService {
         response.setName(product.getName());
         response.setCasNumber(product.getCasNumber());
         response.setEcNumber(product.getEcNumber());
+        response.setProductCode(product.getProductCode());
+        response.setSupplierName(product.getSupplierName());
         response.setSignalWord(product.getSignalWord());
         response.setPhysicalState(product.getPhysicalState());
+        response.setDefaultUnit(product.getDefaultUnit());
+        response.setStorageClass(product.getStorageClass());
+        response.setUseDescription(product.getUseDescription());
         response.setRestricted(product.getRestricted());
         response.setCreatedAt(product.getCreatedAt());
         response.setUpdatedAt(product.getUpdatedAt());

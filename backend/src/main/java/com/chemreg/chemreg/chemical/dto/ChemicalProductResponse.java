@@ -1,6 +1,7 @@
 package com.chemreg.chemreg.chemical.dto;
 
 import com.chemreg.chemreg.common.enums.ChemicalSignalWord;
+import com.chemreg.chemreg.common.enums.InventoryUnit;
 import com.chemreg.chemreg.common.enums.PhysicalState;
 
 import java.time.OffsetDateTime;
@@ -16,8 +17,13 @@ public class ChemicalProductResponse {
     private String name;
     private String casNumber;
     private String ecNumber;
+    private String productCode;
+    private String supplierName;
     private ChemicalSignalWord signalWord;
     private PhysicalState physicalState;
+    private InventoryUnit defaultUnit;
+    private String storageClass;
+    private String useDescription;
     private Boolean restricted;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
@@ -70,6 +76,22 @@ public class ChemicalProductResponse {
         this.ecNumber = ecNumber;
     }
 
+    public String getProductCode() {
+        return productCode;
+    }
+
+    public void setProductCode(String productCode) {
+        this.productCode = productCode;
+    }
+
+    public String getSupplierName() {
+        return supplierName;
+    }
+
+    public void setSupplierName(String supplierName) {
+        this.supplierName = supplierName;
+    }
+
     public ChemicalSignalWord getSignalWord() {
         return signalWord;
     }
@@ -84,6 +106,30 @@ public class ChemicalProductResponse {
 
     public void setPhysicalState(PhysicalState physicalState) {
         this.physicalState = physicalState;
+    }
+
+    public InventoryUnit getDefaultUnit() {
+        return defaultUnit;
+    }
+
+    public void setDefaultUnit(InventoryUnit defaultUnit) {
+        this.defaultUnit = defaultUnit;
+    }
+
+    public String getStorageClass() {
+        return storageClass;
+    }
+
+    public void setStorageClass(String storageClass) {
+        this.storageClass = storageClass;
+    }
+
+    public String getUseDescription() {
+        return useDescription;
+    }
+
+    public void setUseDescription(String useDescription) {
+        this.useDescription = useDescription;
     }
 
     public Boolean getRestricted() {

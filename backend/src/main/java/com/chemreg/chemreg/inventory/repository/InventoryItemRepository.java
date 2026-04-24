@@ -8,5 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, UUID> {
-List<InventoryItem> findByTenantId(UUID tenantId);
+    List<InventoryItem> findByTenantId(UUID tenantId);
+
+    Optional<InventoryItem> findByIdAndTenant_Id(UUID id, UUID tenantId);
 }

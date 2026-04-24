@@ -2,6 +2,7 @@ import { apiDelete, apiGet, apiPost, apiPut } from './apiClient';
 
 export type ChemicalSignalWord = 'Danger' | 'Warning';
 export type PhysicalState = 'solid' | 'liquid' | 'gas' | 'aerosol';
+export type InventoryUnit = 'kg' | 'L' | 'g' | 'mL' | 'pcs';
 
 export interface ChemicalProduct {
   id: string;
@@ -10,8 +11,13 @@ export interface ChemicalProduct {
   name: string;
   casNumber: string | null;
   ecNumber: string | null;
+  productCode: string | null;
+  supplierName: string | null;
   signalWord: ChemicalSignalWord | null;
   physicalState: PhysicalState | null;
+  defaultUnit: InventoryUnit | null;
+  storageClass: string | null;
+  useDescription: string | null;
   restricted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -21,8 +27,13 @@ export interface SaveChemicalProductRequest {
   name: string;
   casNumber?: string | null;
   ecNumber?: string | null;
+  productCode?: string | null;
+  supplierName?: string | null;
   signalWord?: ChemicalSignalWord | null;
   physicalState?: PhysicalState | null;
+  defaultUnit?: InventoryUnit | null;
+  storageClass?: string | null;
+  useDescription?: string | null;
   restricted?: boolean;
   sdsDocumentId?: string | null;
 }

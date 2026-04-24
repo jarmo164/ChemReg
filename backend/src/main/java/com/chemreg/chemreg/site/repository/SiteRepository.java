@@ -8,5 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface SiteRepository extends JpaRepository<Site, UUID> {
-List<Site> findByTenantId(UUID tenantId);
+    List<Site> findByTenantId(UUID tenantId);
+
+    Optional<Site> findByIdAndTenant_Id(UUID id, UUID tenantId);
 }

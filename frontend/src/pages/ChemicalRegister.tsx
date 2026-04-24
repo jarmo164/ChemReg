@@ -37,6 +37,7 @@ import {
   updateChemicalProduct,
   type ChemicalProduct,
   type ChemicalSignalWord,
+  type InventoryUnit,
   type PhysicalState,
   type SaveChemicalProductRequest,
 } from '../api/chemicals';
@@ -47,8 +48,13 @@ type ChemicalForm = {
   name: string;
   casNumber: string;
   ecNumber: string;
+  productCode: string;
+  supplierName: string;
   signalWord: '' | ChemicalSignalWord;
   physicalState: '' | PhysicalState;
+  defaultUnit: '' | InventoryUnit;
+  storageClass: string;
+  useDescription: string;
   restricted: 'true' | 'false';
   sdsDocumentId: string;
 };
@@ -57,14 +63,20 @@ const emptyForm = (): ChemicalForm => ({
   name: '',
   casNumber: '',
   ecNumber: '',
+  productCode: '',
+  supplierName: '',
   signalWord: '',
   physicalState: '',
+  defaultUnit: '',
+  storageClass: '',
+  useDescription: '',
   restricted: 'false',
   sdsDocumentId: '',
 });
 
 const signalWordOptions: ChemicalSignalWord[] = ['Danger', 'Warning'];
 const physicalStateOptions: PhysicalState[] = ['solid', 'liquid', 'gas', 'aerosol'];
+const inventoryUnitOptions: InventoryUnit[] = ['kg', 'L', 'g', 'mL', 'pcs'];
 
 export default function ChemicalRegister() {
   const [chemicals, setChemicals] = useState<ChemicalProduct[]>([]);
@@ -103,7 +115,17 @@ export default function ChemicalRegister() {
 
   const filteredChemicals = useMemo(() => {
     return chemicals.filter((chemical) => {
-      const matchesSearch = [chemical.name, chemical.casNumber, chemical.ecNumber, chemical.physicalState, chemical.signalWord]
+      const matchesSearch = [
+        chemical.name,
+        chemical.casNumber,
+        chemical.ecNumber,
+        chemical.productCode,
+        chemical.supplierName,
+        chemical.storageClass,
+        chemical.useDescription,
+        chemical.physicalState,
+        chemical.signalWord,
+      ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -135,8 +157,13 @@ export default function ChemicalRegister() {
       name: chemical.name,
       casNumber: chemical.casNumber ?? '',
       ecNumber: chemical.ecNumber ?? '',
+      productCode: chemical.productCode ?? '',
+      supplierName: chemical.supplierName ?? '',
       signalWord: chemical.signalWord ?? '',
       physicalState: chemical.physicalState ?? '',
+      defaultUnit: chemical.defaultUnit ?? '',
+      storageClass: chemical.storageClass ?? '',
+      useDescription: chemical.useDescription ?? '',
       restricted: chemical.restricted ? 'true' : 'false',
       sdsDocumentId: chemical.sdsDocumentId ?? '',
     });
@@ -157,8 +184,13 @@ export default function ChemicalRegister() {
       name: currentForm.name.trim(),
       casNumber: currentForm.casNumber.trim() || null,
       ecNumber: currentForm.ecNumber.trim() || null,
+      productCode: currentForm.productCode.trim() || null,
+      supplierName: currentForm.supplierName.trim() || null,
       signalWord: currentForm.signalWord || null,
       physicalState: currentForm.physicalState || null,
+      defaultUnit: currentForm.defaultUnit || null,
+      storageClass: currentForm.storageClass.trim() || null,
+      useDescription: currentForm.useDescription.trim() || null,
       restricted: currentForm.restricted === 'true',
       sdsDocumentId: currentForm.sdsDocumentId || null,
     };
@@ -298,7 +330,7 @@ export default function ChemicalRegister() {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'var(--gpv-gray-100)' }}>
-                {['Chemical', 'CAS', 'EC', 'Signal word', 'State', 'Restricted', 'SDS', 'Updated', 'Actions'].map((label) => (
+                {['Chemical', 'Code', 'Supplier', 'Signal / state', 'Default unit', 'Storage', 'Restricted', 'SDS', 'Updated', 'Actions'].map((label) => (
                   <TableCell key={label} sx={tableHeadCellSx}>{label}</TableCell>
                 ))}
               </TableRow>
@@ -312,16 +344,30 @@ export default function ChemicalRegister() {
                       <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{chemical.id}</Typography>
                     </Stack>
                   </TableCell>
-                  <TableCell><Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{chemical.casNumber || '—'}</Typography></TableCell>
-                  <TableCell><Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{chemical.ecNumber || '—'}</Typography></TableCell>
                   <TableCell>
-                    <Chip
-                      label={chemical.signalWord || 'None'}
-                      size="small"
-                      sx={chemical.signalWord === 'Danger' ? chipBaseSx('rgba(225, 29, 72, 0.1)', '#be123c') : chemical.signalWord === 'Warning' ? chipBaseSx('rgba(245, 158, 11, 0.12)', '#b45309') : chipBaseSx('var(--gpv-gray-100)')}
-                    />
+                    <Stack spacing={0.25}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{chemical.productCode || '—'}</Typography>
+                      <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>{chemical.casNumber || chemical.ecNumber || 'No CAS/EC'}</Typography>
+                    </Stack>
                   </TableCell>
-                  <TableCell><Typography sx={{ fontSize: 13, color: 'text.secondary', textTransform: 'capitalize' }}>{chemical.physicalState || '—'}</Typography></TableCell>
+                  <TableCell><Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{chemical.supplierName || '—'}</Typography></TableCell>
+                  <TableCell>
+                    <Stack spacing={0.75}>
+                      <Chip
+                        label={chemical.signalWord || 'None'}
+                        size="small"
+                        sx={chemical.signalWord === 'Danger' ? chipBaseSx('rgba(225, 29, 72, 0.1)', '#be123c') : chemical.signalWord === 'Warning' ? chipBaseSx('rgba(245, 158, 11, 0.12)', '#b45309') : chipBaseSx('var(--gpv-gray-100)')}
+                      />
+                      <Typography sx={{ fontSize: 12, color: 'text.secondary', textTransform: 'capitalize' }}>{chemical.physicalState || 'No state'}</Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell><Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{chemical.defaultUnit || '—'}</Typography></TableCell>
+                  <TableCell>
+                    <Stack spacing={0.25}>
+                      <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>{chemical.storageClass || '—'}</Typography>
+                      <Typography sx={{ fontSize: 11, color: 'text.disabled' }}>{chemical.useDescription || 'No usage note'}</Typography>
+                    </Stack>
+                  </TableCell>
                   <TableCell>
                     <Chip label={chemical.restricted ? 'Restricted' : 'Open'} size="small" sx={chemical.restricted ? chipBaseSx('rgba(225, 29, 72, 0.1)', '#be123c') : chipBaseSx('rgba(46, 164, 79, 0.1)', '#15803d')} />
                   </TableCell>
@@ -362,6 +408,10 @@ export default function ChemicalRegister() {
           <Stack spacing={2.5}>
             <TextField label="Chemical name" value={form.name} onChange={(event) => setField('name', event.target.value)} required fullWidth />
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField label="Product code" value={form.productCode} onChange={(event) => setField('productCode', event.target.value)} fullWidth />
+              <TextField label="Supplier name" value={form.supplierName} onChange={(event) => setField('supplierName', event.target.value)} fullWidth />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <TextField label="CAS number" value={form.casNumber} onChange={(event) => setField('casNumber', event.target.value)} fullWidth />
               <TextField label="EC number" value={form.ecNumber} onChange={(event) => setField('ecNumber', event.target.value)} fullWidth />
             </Stack>
@@ -378,11 +428,29 @@ export default function ChemicalRegister() {
                   <MenuItem key={option} value={option} sx={{ textTransform: 'capitalize' }}>{option}</MenuItem>
                 ))}
               </TextField>
+              <TextField select label="Default inventory unit" value={form.defaultUnit} onChange={(event) => setField('defaultUnit', event.target.value as ChemicalForm['defaultUnit'])} fullWidth>
+                <MenuItem value="">Not set</MenuItem>
+                {inventoryUnitOptions.map((option) => (
+                  <MenuItem key={option} value={option}>{option}</MenuItem>
+                ))}
+              </TextField>
             </Stack>
-            <TextField select label="Restriction level" value={form.restricted} onChange={(event) => setField('restricted', event.target.value as ChemicalForm['restricted'])} fullWidth>
-              <MenuItem value="false">Open</MenuItem>
-              <MenuItem value="true">Restricted</MenuItem>
-            </TextField>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField label="Storage class / area" value={form.storageClass} onChange={(event) => setField('storageClass', event.target.value)} fullWidth />
+              <TextField select label="Restriction level" value={form.restricted} onChange={(event) => setField('restricted', event.target.value as ChemicalForm['restricted'])} fullWidth>
+                <MenuItem value="false">Open</MenuItem>
+                <MenuItem value="true">Restricted</MenuItem>
+              </TextField>
+            </Stack>
+            <TextField
+              label="Use description"
+              value={form.useDescription}
+              onChange={(event) => setField('useDescription', event.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+              helperText="Short note for label, inventory, and risk contexts."
+            />
             <TextField
               select
               label="Linked SDS"

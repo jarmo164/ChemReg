@@ -3,6 +3,7 @@ package com.chemreg.chemreg.chemical.service;
 import com.chemreg.chemreg.chemical.dto.SaveChemicalProductRequest;
 import com.chemreg.chemreg.chemical.entity.ChemicalProduct;
 import com.chemreg.chemreg.chemical.repository.ChemicalProductRepository;
+import com.chemreg.chemreg.common.enums.InventoryUnit;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
 import com.chemreg.chemreg.common.security.CurrentAccessContext;
 import com.chemreg.chemreg.sds.entity.SdsDocument;
@@ -17,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -108,5 +110,39 @@ class ChemicalProductServiceTest {
 
         verify(sdsDocumentRepository).findByIdAndTenant_Id(sdsId, tenantId);
         verify(chemicalProductRepository).save(any());
+    }
+
+    @Test
+    void createPersistsExpandedMetadataForDownstreamFlows() {
+        UUID tenantId = UUID.randomUUID();
+        com.chemreg.chemreg.tenant.entity.Tenant tenant = new com.chemreg.chemreg.tenant.entity.Tenant();
+        tenant.setId(tenantId);
+
+        when(currentAccessContext.currentTenantId()).thenReturn(tenantId);
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+        when(chemicalProductRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SaveChemicalProductRequest request = new SaveChemicalProductRequest();
+        request.setName("  Acetone  ");
+        request.setCasNumber(" 67-64-1 ");
+        request.setEcNumber(" 200-662-2 ");
+        request.setProductCode(" ACETONE-001 ");
+        request.setSupplierName(" Merck ");
+        request.setDefaultUnit(InventoryUnit.L);
+        request.setStorageClass("Flammables cabinet");
+        request.setUseDescription(" Lab solvent ");
+        request.setRestricted(Boolean.TRUE);
+
+        var response = chemicalProductService.create(request);
+
+        assertEquals("Acetone", response.getName());
+        assertEquals("67-64-1", response.getCasNumber());
+        assertEquals("200-662-2", response.getEcNumber());
+        assertEquals("ACETONE-001", response.getProductCode());
+        assertEquals("Merck", response.getSupplierName());
+        assertEquals(InventoryUnit.L, response.getDefaultUnit());
+        assertEquals("Flammables cabinet", response.getStorageClass());
+        assertEquals("Lab solvent", response.getUseDescription());
+        assertEquals(Boolean.TRUE, response.getRestricted());
     }
 }

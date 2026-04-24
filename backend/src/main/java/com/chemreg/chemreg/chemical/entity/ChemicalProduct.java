@@ -1,6 +1,7 @@
 package com.chemreg.chemreg.chemical.entity;
 
 import com.chemreg.chemreg.common.enums.ChemicalSignalWord;
+import com.chemreg.chemreg.common.enums.InventoryUnit;
 import com.chemreg.chemreg.common.enums.PhysicalState;
 import com.chemreg.chemreg.common.persistence.entity.BaseAuditableEntity;
 import com.chemreg.chemreg.sds.entity.SdsDocument;
@@ -39,6 +40,12 @@ public class ChemicalProduct extends BaseAuditableEntity {
     @Column(name = "ec_number", length = 50)
     private String ecNumber;
 
+    @Column(name = "product_code", length = 100)
+    private String productCode;
+
+    @Column(name = "supplier_name", length = 255)
+    private String supplierName;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "signal_word", length = 50)
     private ChemicalSignalWord signalWord;
@@ -46,6 +53,16 @@ public class ChemicalProduct extends BaseAuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "physical_state", length = 50)
     private PhysicalState physicalState;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "default_unit", length = 20)
+    private InventoryUnit defaultUnit;
+
+    @Column(name = "storage_class", length = 100)
+    private String storageClass;
+
+    @Column(name = "use_description", length = 500)
+    private String useDescription;
 
     @Column(name = "is_restricted", nullable = false)
     private Boolean restricted;
@@ -96,6 +113,22 @@ public class ChemicalProduct extends BaseAuditableEntity {
         this.ecNumber = ecNumber;
     }
 
+    public String getProductCode() {
+        return productCode;
+    }
+
+    public void setProductCode(String productCode) {
+        this.productCode = productCode;
+    }
+
+    public String getSupplierName() {
+        return supplierName;
+    }
+
+    public void setSupplierName(String supplierName) {
+        this.supplierName = supplierName;
+    }
+
     public ChemicalSignalWord getSignalWord() {
         return signalWord;
     }
@@ -110,6 +143,30 @@ public class ChemicalProduct extends BaseAuditableEntity {
 
     public void setPhysicalState(PhysicalState physicalState) {
         this.physicalState = physicalState;
+    }
+
+    public InventoryUnit getDefaultUnit() {
+        return defaultUnit;
+    }
+
+    public void setDefaultUnit(InventoryUnit defaultUnit) {
+        this.defaultUnit = defaultUnit;
+    }
+
+    public String getStorageClass() {
+        return storageClass;
+    }
+
+    public void setStorageClass(String storageClass) {
+        this.storageClass = storageClass;
+    }
+
+    public String getUseDescription() {
+        return useDescription;
+    }
+
+    public void setUseDescription(String useDescription) {
+        this.useDescription = useDescription;
     }
 
     public Boolean getRestricted() {

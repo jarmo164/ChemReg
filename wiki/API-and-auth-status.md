@@ -26,12 +26,33 @@ Praegune MVP storage contract on local filesystem-based:
 - uus upload märgib eelmise faili mitte-current versiooniks
 - see jätab hilisema MinIO/S3 adapteri vahetuse avatuks ilma SDS API kuju murdmata
 
+## Chemical product downstream metadata
+MVP chemical product API kannab nuud minimaalselt kaasa:
+- identifikaatorid: `name`, `productCode`, `casNumber`, `ecNumber`
+- SDS/label context: `supplierName`, `signalWord`, `physicalState`, `sdsDocumentId`
+- inventory/risk defaults: `defaultUnit`, `storageClass`, `useDescription`, `restricted`
+
+## Site and hierarchical location API
+Praegune backend slice katab:
+- site list/create/update tenant scope'is
+- location list/create/update konkreetse site all
+- parent location võib olla ainult sama tenant'i sama site'i sees
+- see loob reaalse aluse 4.2 inventory item CRUD jaoks
+
+## Inventory item API
+Praegune backend slice katab:
+- inventory item list/detail/create/update/delete tenant scope'is
+- item seotakse alati tenant-scoped producti ja location'iga
+- payload sisaldab `quantity`, `unit`, `status`, `containerType`, `barcode`, `qrCode`, `lotNumber`, `openedAt`, `expiryDate`, `minStock`
+- response tagastab lisaks `productName` ja `locationName`, et UI saaks kohe reaalse register-vaate ehitada
+
 ## Tenant/site/location scope
 MVP-s kehtib järgmine scope:
 - tenant on primaarne eralduspiir kõikidele domeeniandmetele
 - direct-object access peab alati olema tenant-scoped repository/service lookupiga
 - SDS file access käib ainult läbi tenant-scoped SDS document lookupi
 - site/location scope on järgmine kitsendus inventuuri ja riski voogudes, mitte tenanti asendus
+- site/location API enforce'b tenant scope'i ja parent-location peab kuuluma samasse site'i
 
 ## Current live API surface
 - `POST /api/auth/login`
@@ -39,7 +60,11 @@ MVP-s kehtib järgmine scope:
 - `POST /api/auth/logout`
 - `POST /api/users`
 - `GET/POST/PUT/DELETE /api/chemical-products`
+  - payload/response sisaldab nuud ka `productCode`, `supplierName`, `defaultUnit`, `storageClass`, `useDescription`, `sdsDocumentId`
 - `GET/POST/PUT /api/sds-documents`
 - `POST /api/sds-documents/{id}/files`
 - `GET /api/sds-documents/{documentId}/files/{fileId}/download`
 - `GET /api/sds-documents/{documentId}/files/{fileId}/preview`
+- `GET/POST/PUT /api/sites`
+- `GET/POST/PUT /api/sites/{siteId}/locations`
+- `GET/POST/PUT/DELETE /api/inventory-items`
