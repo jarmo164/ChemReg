@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -30,6 +30,7 @@ import {
   Download as DownloadIcon,
   Warning as WarningIcon,
   Close as CloseIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import ChemRegButton from '../components/ChemRegButton';
 import { openMiniSdsPrintPreview } from '../utils/miniSdsPdf';
@@ -37,10 +38,13 @@ import StatusChip from '../components/StatusChip';
 import {
   createSdsDocument,
   listSdsDocuments,
+  openSdsFile,
   updateSdsDocument,
+  uploadSdsFile,
   type BackendSdsStatus,
   type SaveSdsDocumentRequest,
   type SdsDocument,
+  type SdsFile,
 } from '../api/sds';
 
 type SdsStatus = 'current' | 'expiring_soon' | 'expired';
@@ -54,6 +58,7 @@ type SdsListRow = {
   supplierName: string;
   expiryDate: string;
   status: SdsStatus;
+  currentFile: SdsFile | null;
 };
 
 type MiniSdsForm = {
@@ -144,7 +149,9 @@ export default function SdsManagement() {
   const [generatedJson, setGeneratedJson] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadDocuments() {
     setIsLoading(true);
@@ -176,6 +183,7 @@ export default function SdsManagement() {
         supplierName: document.supplierNameRaw ?? '—',
         expiryDate: document.expiryDate ?? '',
         status: rowStatusFromExpiryDate(document.expiryDate ?? ''),
+        currentFile: document.files.find((file) => file.current) ?? document.files[0] ?? null,
       };
     });
   }, [documents]);
@@ -201,11 +209,18 @@ export default function SdsManagement() {
     [listRows]
   );
 
+  const resetFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const openCreateDialog = () => {
     setMode('create');
     setSelectedId(null);
     setForm(createEmptyForm());
     setGeneratedJson('');
+    resetFilePicker();
     setDialogOpen(true);
   };
 
@@ -217,6 +232,7 @@ export default function SdsManagement() {
     setSelectedId(id);
     setForm(formFromDocument(existing));
     setGeneratedJson(JSON.stringify(payloadFromForm(formFromDocument(existing)), null, 2));
+    resetFilePicker();
     setDialogOpen(true);
   };
 
@@ -235,8 +251,80 @@ export default function SdsManagement() {
     }
   };
 
+  const upsertDocument = (saved: SdsDocument) => {
+    setDocuments((current) => {
+      const existingIndex = current.findIndex((item) => item.id === saved.id);
+      if (existingIndex === -1) {
+        return [saved, ...current];
+      }
+
+      const next = [...current];
+      next[existingIndex] = saved;
+      return next;
+    });
+  };
+
+  const persistCurrentDocument = async (): Promise<SdsDocument> => {
+    if (!form.productName.trim()) {
+      throw new Error('Product name is required before uploading a PDF');
+    }
+
+    const payload = payloadFromForm(form);
+    if (payload.sections.length === 0) {
+      throw new Error('At least one SDS section is required before uploading a PDF');
+    }
+
+    const saved = selectedId
+      ? await updateSdsDocument(selectedId, payload)
+      : await createSdsDocument(payload);
+
+    upsertDocument(saved);
+    setSelectedId(saved.id);
+    setMode('edit');
+    setGeneratedJson(JSON.stringify(payload, null, 2));
+    return saved;
+  };
+
+  const handlePdfSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Only PDF files are supported for SDS upload');
+      resetFilePicker();
+      return;
+    }
+
+    setIsUploadingFile(true);
+    setError('');
+
+    try {
+      const savedDocument = await persistCurrentDocument();
+      await uploadSdsFile(savedDocument.id, file);
+      await loadDocuments();
+    } catch (err) {
+      const nextError = err as Error;
+      setError(nextError.message || 'SDS PDF upload failed');
+    } finally {
+      setIsUploadingFile(false);
+      resetFilePicker();
+    }
+  };
+
+  const handleOpenFile = async (documentId: string, fileId: string, mode: 'preview' | 'download') => {
+    setError('');
+    try {
+      await openSdsFile(documentId, fileId, mode);
+    } catch (err) {
+      const nextError = err as Error;
+      setError(nextError.message || `SDS file ${mode} failed`);
+    }
+  };
+
   const closeDialog = () => {
-    if (!isSaving) {
+    if (!isSaving && !isUploadingFile) {
       setDialogOpen(false);
     }
   };
@@ -265,12 +353,7 @@ export default function SdsManagement() {
         ? await updateSdsDocument(selectedId, payload)
         : await createSdsDocument(payload);
 
-      setDocuments((current) => {
-        if (selectedId) {
-          return current.map((item) => (item.id === saved.id ? saved : item));
-        }
-        return [saved, ...current];
-      });
+      upsertDocument(saved);
       setSelectedId(saved.id);
       setMode('edit');
       setGeneratedJson(JSON.stringify(payload, null, 2));
@@ -299,9 +382,9 @@ export default function SdsManagement() {
             <SyncIcon sx={{ fontSize: 16, mr: 0.5 }} />
             Refresh
           </ChemRegButton>
-          <ChemRegButton variant="outline" disabled>
+          <ChemRegButton variant="outline" onClick={openCreateDialog}>
             <ImportIcon sx={{ fontSize: 16, mr: 0.5 }} />
-            Import SDS
+            Import SDS PDF
           </ChemRegButton>
           <ChemRegButton variant="primary" onClick={openCreateDialog}>
             <AddIcon sx={{ fontSize: 16, mr: 0.5 }} />
@@ -404,6 +487,11 @@ export default function SdsManagement() {
                       <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => openEditDialog(sds.id)}>
                         <ViewIcon sx={{ fontSize: 18 }} />
                       </IconButton>
+                      {sds.currentFile ? (
+                        <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => void handleOpenFile(sds.id, sds.currentFile!.id, 'preview')}>
+                          <PdfIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      ) : null}
                       <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => handleGenerateMiniSds(sds.id)}>
                         <DownloadIcon sx={{ fontSize: 18 }} />
                       </IconButton>
@@ -470,6 +558,86 @@ export default function SdsManagement() {
                   </Box>
                 ))}
               </Stack>
+            </Card>
+
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' } }}>
+                <Box>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800 }}>Source SDS PDF</Typography>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                    Upload the original PDF and keep it attached for preview/download. If this SDS is new, the form is saved first and then the PDF is attached.
+                  </Typography>
+                </Box>
+                <ChemRegButton variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving || isUploadingFile}>
+                  <ImportIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                  {isUploadingFile ? 'Uploading PDF…' : 'Attach PDF'}
+                </ChemRegButton>
+              </Stack>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(event) => void handlePdfSelected(event)}
+                style={{ display: 'none' }}
+              />
+
+              {selectedId ? (
+                (() => {
+                  const selectedDocument = documents.find((document) => document.id === selectedId);
+                  const files = selectedDocument?.files ?? [];
+
+                  if (files.length === 0) {
+                    return (
+                      <Typography sx={{ mt: 2, fontSize: 13, color: 'text.secondary' }}>
+                        No PDF attached yet.
+                      </Typography>
+                    );
+                  }
+
+                  return (
+                    <Stack spacing={1.25} sx={{ mt: 2 }}>
+                      {files.map((file) => (
+                        <Stack
+                          key={file.id}
+                          direction={{ xs: 'column', md: 'row' }}
+                          spacing={1.5}
+                          sx={{
+                            p: 1.5,
+                            border: '1px solid rgba(15, 23, 42, 0.10)',
+                            borderRadius: 2,
+                            justifyContent: 'space-between',
+                            alignItems: { xs: 'stretch', md: 'center' },
+                          }}
+                        >
+                          <Box>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }} useFlexGap>
+                              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{file.filename}</Typography>
+                              {file.current ? <Chip size="small" label="Current" color="success" variant="outlined" /> : null}
+                            </Stack>
+                            <Typography sx={{ mt: 0.5, fontSize: 12, color: 'text.secondary' }}>
+                              {(file.fileSizeBytes / 1024).toFixed(1)} KB
+                              {file.createdAt ? ` • uploaded ${new Date(file.createdAt).toLocaleString()}` : ''}
+                            </Typography>
+                          </Box>
+                          <Stack direction="row" spacing={1}>
+                            <ChemRegButton variant="outline" onClick={() => void handleOpenFile(selectedId, file.id, 'preview')}>
+                              Preview
+                            </ChemRegButton>
+                            <ChemRegButton variant="outline" onClick={() => void handleOpenFile(selectedId, file.id, 'download')}>
+                              Download
+                            </ChemRegButton>
+                          </Stack>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  );
+                })()
+              ) : (
+                <Typography sx={{ mt: 2, fontSize: 13, color: 'text.secondary' }}>
+                  Tip: if you attach a PDF now, ChemReg saves this SDS draft first and then uploads the file.
+                </Typography>
+              )}
             </Card>
 
             <Card variant="outlined" sx={{ p: 2.5 }}>

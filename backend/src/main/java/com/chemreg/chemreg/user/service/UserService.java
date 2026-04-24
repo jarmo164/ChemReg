@@ -2,6 +2,7 @@ package com.chemreg.chemreg.user.service;
 
 import com.chemreg.chemreg.auth.entity.UserCredential;
 import com.chemreg.chemreg.auth.repository.UserCredentialRepository;
+import com.chemreg.chemreg.common.enums.UserRole;
 import com.chemreg.chemreg.common.enums.UserStatus;
 import com.chemreg.chemreg.common.exception.BadRequestException;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
@@ -51,6 +52,19 @@ public class UserService {
             throw new BadRequestException("Org Admin can only create users inside the authenticated tenant.");
         }
 
+        return createUserInternal(
+                request,
+                request.getRole(),
+                request.getStatus() == null ? UserStatus.active : request.getStatus()
+        );
+    }
+
+    @Transactional
+    public UserResponse registerUser(CreateUserRequest request) {
+        return createUserInternal(request, UserRole.user, UserStatus.active);
+    }
+
+    private UserResponse createUserInternal(CreateUserRequest request, UserRole role, UserStatus status) {
         Tenant tenant = tenantRepository.findById(request.getTenantId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant not found: " + request.getTenantId()));
 
@@ -64,8 +78,8 @@ public class UserService {
             user.setTenant(tenant);
             user.setName(request.getName().trim());
             user.setEmail(normalizedEmail);
-            user.setRole(request.getRole());
-            user.setStatus(request.getStatus() == null ? UserStatus.active : request.getStatus());
+            user.setRole(role);
+            user.setStatus(status);
             user = userRepository.save(user);
 
             UserCredential credential = new UserCredential();

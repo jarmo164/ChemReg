@@ -55,11 +55,10 @@ public class SdsFileService {
                 sdsFileRepository.saveAll(existingFiles);
             }
 
-            UUID fileId = UUID.randomUUID();
-            String storageKey = sdsBinaryStorage.store(documentId, fileId, file.getOriginalFilename(), file.getBytes());
+            UUID storageFileId = UUID.randomUUID();
+            String storageKey = sdsBinaryStorage.store(documentId, storageFileId, file.getOriginalFilename(), file.getBytes());
 
             SdsFile sdsFile = new SdsFile();
-            sdsFile.setId(fileId);
             sdsFile.setSdsDocument(document);
             sdsFile.setCurrent(Boolean.TRUE);
             sdsFile.setFileSizeBytes(Math.toIntExact(file.getSize()));

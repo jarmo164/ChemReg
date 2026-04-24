@@ -27,7 +27,6 @@ public class CreateUserRequest {
     @Size(min = 8, max = 255)
     private String password;
 
-    @NotNull
     private UserRole role;
 
     private UserStatus status;
