@@ -74,7 +74,7 @@ public class SdsDocumentService {
     }
 
     @Transactional
-    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
+    @PreAuthorize(AuthorizationRules.SDS_AUTHOR_ROLES)
     public SdsDocumentResponse create(SaveSdsDocumentRequest request) {
         UUID tenantId = currentAccessContext.currentTenantId();
         Tenant tenant = tenantRepository.findById(tenantId)
@@ -92,7 +92,7 @@ public class SdsDocumentService {
     }
 
     @Transactional
-    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
+    @PreAuthorize(AuthorizationRules.SDS_AUTHOR_ROLES)
     public SdsDocumentResponse update(UUID id, SaveSdsDocumentRequest request) {
         UUID tenantId = currentAccessContext.currentTenantId();
         SdsDocument document = requireDocumentForCurrentTenant(id);

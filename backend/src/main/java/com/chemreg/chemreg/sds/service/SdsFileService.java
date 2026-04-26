@@ -39,7 +39,7 @@ public class SdsFileService {
     }
 
     @Transactional
-    @PreAuthorize(AuthorizationRules.MVP_MANAGE_ROLES)
+    @PreAuthorize(AuthorizationRules.SDS_AUTHOR_ROLES)
     public SdsFileResponse upload(UUID documentId, MultipartFile file) {
         SdsDocument document = requireDocumentForCurrentTenant(documentId);
         validateUpload(file);
