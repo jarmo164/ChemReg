@@ -33,7 +33,13 @@ import {
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import ChemRegButton from '../components/ChemRegButton';
-import { openMiniSdsPrintPreview } from '../utils/miniSdsPdf';
+import {
+  buildChemicalCardDraftFromSnapshot,
+  openChemicalCardDraftPrintPreview,
+  openChemicalCardPrintPreview,
+  openMiniSdsPrintPreview,
+  type ChemicalCardDraft,
+} from '../utils/miniSdsPdf';
 import StatusChip from '../components/StatusChip';
 import {
   createSdsDocument,
@@ -80,6 +86,8 @@ type MiniSdsForm = {
   section7HandlingStorage: string;
   section8ExposureControl: string;
 };
+
+type ChemicalCardForm = ChemicalCardDraft;
 
 const sectionDefinitions = [
   { key: 'section1Identification', number: 1, title: 'Identification' },
@@ -148,6 +156,7 @@ export default function SdsManagement() {
   const [mode, setMode] = useState<MiniSdsMode>('create');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<MiniSdsForm>(createEmptyForm());
+  const [chemicalCardForm, setChemicalCardForm] = useState<ChemicalCardForm>(() => createChemicalCardForm(createEmptyForm()));
   const [generatedJson, setGeneratedJson] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -220,9 +229,11 @@ export default function SdsManagement() {
   };
 
   const openCreateDialog = () => {
+    const emptyForm = createEmptyForm();
     setMode('create');
     setSelectedId(null);
-    setForm(createEmptyForm());
+    setForm(emptyForm);
+    setChemicalCardForm(createChemicalCardForm(emptyForm));
     setGeneratedJson('');
     setExtractionStatus(null);
     setExtractionWarnings([]);
@@ -234,10 +245,12 @@ export default function SdsManagement() {
     const existing = documents.find((document) => document.id === id);
     if (!existing) return;
 
+    const nextForm = formFromDocument(existing);
     setMode('edit');
     setSelectedId(id);
-    setForm(formFromDocument(existing));
-    setGeneratedJson(JSON.stringify(payloadFromForm(formFromDocument(existing)), null, 2));
+    setForm(nextForm);
+    setChemicalCardForm(createChemicalCardForm(nextForm, existing.updatedAt));
+    setGeneratedJson(JSON.stringify(payloadFromForm(nextForm), null, 2));
     setExtractionStatus(null);
     setExtractionWarnings([]);
     resetFilePicker();
@@ -256,6 +269,21 @@ export default function SdsManagement() {
     } catch (err) {
       const nextError = err as Error;
       setError(nextError.message || 'Mini SDS generation failed');
+    }
+  };
+
+  const handleGenerateChemicalCard = (id: string) => {
+    const existing = documents.find((document) => document.id === id);
+    if (!existing) {
+      setError('SDS document not found for generation');
+      return;
+    }
+
+    try {
+      openChemicalCardPrintPreview(existing);
+    } catch (err) {
+      const nextError = err as Error;
+      setError(nextError.message || 'Chemical card generation failed');
     }
   };
 
@@ -313,6 +341,7 @@ export default function SdsManagement() {
         }
       }
 
+      setChemicalCardForm(createChemicalCardForm(next));
       return next;
     });
   };
@@ -392,6 +421,15 @@ export default function SdsManagement() {
 
   const setField = (field: keyof MiniSdsForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const setChemicalCardField = (field: keyof ChemicalCardForm, value: string | string[]) => {
+    setChemicalCardForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const refreshChemicalCardPrefill = () => {
+    const existing = selectedId ? documents.find((document) => document.id === selectedId) : undefined;
+    setChemicalCardForm(createChemicalCardForm(form, existing?.updatedAt));
   };
 
   const handleSubmit = async () => {
@@ -553,8 +591,11 @@ export default function SdsManagement() {
                           <PdfIcon sx={{ fontSize: 18 }} />
                         </IconButton>
                       ) : null}
-                      <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => handleGenerateMiniSds(sds.id)}>
+                      <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => handleGenerateMiniSds(sds.id)} title="Generate mini SDS PDF">
                         <DownloadIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                      <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => handleGenerateChemicalCard(sds.id)} title="Generate GPV chemical card A4">
+                        <PdfIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </Stack>
                   </TableCell>
@@ -594,57 +635,17 @@ export default function SdsManagement() {
               </Alert>
             ) : null}
 
-            <Card variant="outlined" sx={{ p: 2.5 }}>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 2 }}>Document metadata</Typography>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }} useFlexGap>
-                <TextField label="Product name" value={form.productName} onChange={(e) => setField('productName', e.target.value)} required fullWidth />
-                <TextField label="Supplier name" value={form.supplierNameRaw} onChange={(e) => setField('supplierNameRaw', e.target.value)} fullWidth />
-                <TextField label="Revision date (YYYY-MM-DD)" type="date" value={form.revisionDate} onChange={(e) => setField('revisionDate', e.target.value)} fullWidth />
-                <TextField label="Expiry date (YYYY-MM-DD)" type="date" value={form.expiryDate} onChange={(e) => setField('expiryDate', e.target.value)} fullWidth />
-                <TextField label="Language" value={form.language} onChange={(e) => setField('language', e.target.value)} fullWidth />
-                <TextField label="Country format" value={form.countryFormat} onChange={(e) => setField('countryFormat', e.target.value)} fullWidth />
-                <TextField select label="Document status" value={form.status} onChange={(e) => setField('status', e.target.value)} fullWidth>
-                  <MenuItem value="active">active</MenuItem>
-                  <MenuItem value="pending_review">pending_review</MenuItem>
-                  <MenuItem value="archived">archived</MenuItem>
-                </TextField>
-              </Stack>
-            </Card>
-
-            <Card variant="outlined" sx={{ p: 2.5 }}>
-              <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 1 }}>Mini SDS sections</Typography>
-              <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
-                Keep the content concise. This slice stores document metadata + sections in the live backend so the seeded/demo state is gone.
-              </Typography>
-              <Stack spacing={2}>
-                {sectionDefinitions.map((section) => (
-                  <Box key={section.key}>
-                    <Typography sx={{ mb: 1, fontSize: 13, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
-                      Section {section.number} — {section.title}
-                    </Typography>
-                    <TextField
-                      multiline
-                      minRows={3}
-                      fullWidth
-                      value={form[section.key]}
-                      onChange={(e) => setField(section.key, e.target.value)}
-                    />
-                  </Box>
-                ))}
-              </Stack>
-            </Card>
-
-            <Card variant="outlined" sx={{ p: 2.5 }}>
+            <Card variant="outlined" sx={{ p: 2.5, borderColor: 'rgba(20, 184, 166, 0.4)', bgcolor: 'rgba(240, 253, 250, 0.55)' }}>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' } }}>
                 <Box>
-                  <Typography sx={{ fontSize: 16, fontWeight: 800 }}>Source SDS PDF</Typography>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800 }}>1. Source SDS PDF</Typography>
                   <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
-                    Upload the original PDF and keep it attached for preview/download. If this SDS is new, the form is saved first and then the PDF is attached.
+                    Start here. Attach the original SDS PDF first and ChemReg will parse as much as it can to prefill the SDS and GPV card fields for you.
                   </Typography>
                 </Box>
-                <ChemRegButton variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isSaving || isUploadingFile}>
+                <ChemRegButton variant="primary" onClick={() => fileInputRef.current?.click()} disabled={isSaving || isUploadingFile}>
                   <ImportIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  {isUploadingFile ? 'Uploading PDF…' : 'Attach PDF'}
+                  {isUploadingFile ? 'Uploading PDF…' : 'Attach PDF first'}
                 </ChemRegButton>
               </Stack>
 
@@ -664,7 +665,7 @@ export default function SdsManagement() {
                   if (files.length === 0) {
                     return (
                       <Typography sx={{ mt: 2, fontSize: 13, color: 'text.secondary' }}>
-                        No PDF attached yet.
+                        No PDF attached yet. Attach one first if you want the form to fill itself as much as possible.
                       </Typography>
                     );
                   }
@@ -712,9 +713,143 @@ export default function SdsManagement() {
                 })()
               ) : (
                 <Typography sx={{ mt: 2, fontSize: 13, color: 'text.secondary' }}>
-                  Tip: if you attach a PDF now, ChemReg saves this SDS draft first and then uploads the file.
+                  Tip: attach a PDF now and ChemReg will create a draft, upload the file, parse it, and prefill the rest for you.
                 </Typography>
               )}
+            </Card>
+
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 2 }}>2. Document metadata</Typography>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ flexWrap: 'wrap' }} useFlexGap>
+                <TextField label="Product name" value={form.productName} onChange={(e) => setField('productName', e.target.value)} required fullWidth />
+                <TextField label="Supplier name" value={form.supplierNameRaw} onChange={(e) => setField('supplierNameRaw', e.target.value)} fullWidth />
+                <TextField label="Revision date (YYYY-MM-DD)" type="date" value={form.revisionDate} onChange={(e) => setField('revisionDate', e.target.value)} fullWidth />
+                <TextField label="Expiry date (YYYY-MM-DD)" type="date" value={form.expiryDate} onChange={(e) => setField('expiryDate', e.target.value)} fullWidth />
+                <TextField label="Language" value={form.language} onChange={(e) => setField('language', e.target.value)} fullWidth />
+                <TextField label="Country format" value={form.countryFormat} onChange={(e) => setField('countryFormat', e.target.value)} fullWidth />
+                <TextField select label="Document status" value={form.status} onChange={(e) => setField('status', e.target.value)} fullWidth>
+                  <MenuItem value="active">active</MenuItem>
+                  <MenuItem value="pending_review">pending_review</MenuItem>
+                  <MenuItem value="archived">archived</MenuItem>
+                </TextField>
+              </Stack>
+            </Card>
+
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Typography sx={{ fontSize: 16, fontWeight: 800, mb: 1 }}>3. Mini SDS sections</Typography>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 2 }}>
+                These are auto-filled from the PDF when possible. Review and correct where needed.
+              </Typography>
+              <Stack spacing={2}>
+                {sectionDefinitions.map((section) => (
+                  <Box key={section.key}>
+                    <Typography sx={{ mb: 1, fontSize: 13, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
+                      Section {section.number} — {section.title}
+                    </Typography>
+                    <TextField
+                      multiline
+                      minRows={3}
+                      fullWidth
+                      value={form[section.key]}
+                      onChange={(e) => setField(section.key, e.target.value)}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            </Card>
+
+            <Card variant="outlined" sx={{ p: 2.5 }}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', md: 'center' }, mb: 2 }}>
+                <Box>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800 }}>GPV chemical card fields</Typography>
+                  <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
+                    Auto-filled from the SDS, but editable before export so the final card doesn’t depend on parser perfection.
+                  </Typography>
+                </Box>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+                  <ChemRegButton variant="outline" onClick={refreshChemicalCardPrefill}>
+                    Refresh from SDS
+                  </ChemRegButton>
+                  <ChemRegButton variant="outline" onClick={() => openChemicalCardDraftPrintPreview(chemicalCardForm)}>
+                    Preview GPV A4 card
+                  </ChemRegButton>
+                </Stack>
+              </Stack>
+
+              <Stack spacing={2}>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
+                  <TextField label="Kemikaali nimi" value={chemicalCardForm.productName} onChange={(e) => setChemicalCardField('productName', e.target.value)} fullWidth />
+                  <TextField label="Tootekood / artikkel" value={chemicalCardForm.productCode} onChange={(e) => setChemicalCardField('productCode', e.target.value)} fullWidth />
+                  <TextField label="UFI / CAS / EC" value={chemicalCardForm.identifiers} onChange={(e) => setChemicalCardField('identifiers', e.target.value)} fullWidth />
+                  <TextField label="Kasutuskoht / protsess" value={chemicalCardForm.usage} onChange={(e) => setChemicalCardField('usage', e.target.value)} fullWidth />
+                  <TextField label="Vastutaja" value={chemicalCardForm.owner} onChange={(e) => setChemicalCardField('owner', e.target.value)} fullWidth />
+                  <TextField label="Kuupäev" value={chemicalCardForm.revisionDate} onChange={(e) => setChemicalCardField('revisionDate', e.target.value)} fullWidth />
+                  <TextField label="Versioon" value={chemicalCardForm.version} onChange={(e) => setChemicalCardField('version', e.target.value)} fullWidth />
+                  <TextField label="Tunnussõna" value={chemicalCardForm.signalWord} onChange={(e) => setChemicalCardField('signalWord', e.target.value)} fullWidth />
+                </Stack>
+
+                <TextField
+                  label="Peamised ohud"
+                  multiline
+                  minRows={2}
+                  fullWidth
+                  value={chemicalCardForm.primaryHazards}
+                  onChange={(e) => setChemicalCardField('primaryHazards', e.target.value)}
+                />
+
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                  <TextField
+                    label="Piktogrammid (üks reale)"
+                    multiline
+                    minRows={4}
+                    fullWidth
+                    value={chemicalCardForm.pictograms.join('\n')}
+                    onChange={(e) => setChemicalCardField('pictograms', splitTextareaLines(e.target.value))}
+                  />
+                  <TextField
+                    label="IKV (üks reale)"
+                    multiline
+                    minRows={4}
+                    fullWidth
+                    value={chemicalCardForm.ppe.join('\n')}
+                    onChange={(e) => setChemicalCardField('ppe', splitTextareaLines(e.target.value))}
+                  />
+                </Stack>
+
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                  <TextField
+                    label="H-laused (üks reale)"
+                    multiline
+                    minRows={6}
+                    fullWidth
+                    value={chemicalCardForm.hStatements.join('\n')}
+                    onChange={(e) => setChemicalCardField('hStatements', splitTextareaLines(e.target.value))}
+                  />
+                  <TextField
+                    label="P-laused (üks reale)"
+                    multiline
+                    minRows={6}
+                    fullWidth
+                    value={chemicalCardForm.pStatements.join('\n')}
+                    onChange={(e) => setChemicalCardField('pStatements', splitTextareaLines(e.target.value))}
+                  />
+                </Stack>
+
+                <TextField label="Käitlemine ja hoiustamine" multiline minRows={3} fullWidth value={chemicalCardForm.handlingAndStorage} onChange={(e) => setChemicalCardField('handlingAndStorage', e.target.value)} />
+
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                  <TextField label="Esmaabi – sissehingamisel" multiline minRows={2} fullWidth value={chemicalCardForm.firstAidInhalation} onChange={(e) => setChemicalCardField('firstAidInhalation', e.target.value)} />
+                  <TextField label="Esmaabi – nahale sattumisel" multiline minRows={2} fullWidth value={chemicalCardForm.firstAidSkin} onChange={(e) => setChemicalCardField('firstAidSkin', e.target.value)} />
+                </Stack>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                  <TextField label="Esmaabi – silma sattumisel" multiline minRows={2} fullWidth value={chemicalCardForm.firstAidEyes} onChange={(e) => setChemicalCardField('firstAidEyes', e.target.value)} />
+                  <TextField label="Esmaabi – allaneelamisel" multiline minRows={2} fullWidth value={chemicalCardForm.firstAidIngestion} onChange={(e) => setChemicalCardField('firstAidIngestion', e.target.value)} />
+                </Stack>
+
+                <TextField label="Lekke / tulekahju korral" multiline minRows={3} fullWidth value={chemicalCardForm.emergency} onChange={(e) => setChemicalCardField('emergency', e.target.value)} />
+                <TextField label="Jäätmekäitlus" multiline minRows={2} fullWidth value={chemicalCardForm.disposal} onChange={(e) => setChemicalCardField('disposal', e.target.value)} />
+                <TextField label="Märkus" multiline minRows={2} fullWidth value={chemicalCardForm.note} onChange={(e) => setChemicalCardField('note', e.target.value)} />
+              </Stack>
             </Card>
 
             <Card variant="outlined" sx={{ p: 2.5 }}>
@@ -725,14 +860,21 @@ export default function SdsManagement() {
                     Uses live backend shape: `document`, `supplierIds`, `sections`.
                   </Typography>
                 </Box>
-                <ChemRegButton variant="primary" onClick={() => void handleSubmit()} disabled={isSaving}>
-                  {isSaving ? 'Saving…' : 'Save SDS'}
-                </ChemRegButton>
-                {selectedId ? (
-                  <ChemRegButton variant="outline" onClick={() => handleGenerateMiniSds(selectedId)}>
-                    Generate mini SDS PDF
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+                  <ChemRegButton variant="primary" onClick={() => void handleSubmit()} disabled={isSaving}>
+                    {isSaving ? 'Saving…' : 'Save SDS'}
                   </ChemRegButton>
-                ) : null}
+                  {selectedId ? (
+                    <>
+                      <ChemRegButton variant="outline" onClick={() => handleGenerateMiniSds(selectedId)}>
+                        Generate mini SDS PDF
+                      </ChemRegButton>
+                      <ChemRegButton variant="outline" onClick={() => openChemicalCardDraftPrintPreview(chemicalCardForm)}>
+                        Generate GPV A4 card
+                      </ChemRegButton>
+                    </>
+                  ) : null}
+                </Stack>
               </Stack>
               <Divider sx={{ mb: 2 }} />
               <Box component="pre" sx={{ m: 0, p: 2, borderRadius: 2, bgcolor: '#0f172a', color: '#d1fae5', overflowX: 'auto', fontSize: 12, lineHeight: 1.6 }}>
@@ -764,6 +906,31 @@ function formFromDocument(document: SdsDocument): MiniSdsForm {
   }
 
   return form;
+}
+
+function createChemicalCardForm(form: MiniSdsForm, updatedAt?: string): ChemicalCardForm {
+  return buildChemicalCardDraftFromSnapshot({
+    productName: form.productName,
+    supplierNameRaw: form.supplierNameRaw || null,
+    language: form.language,
+    countryFormat: form.countryFormat,
+    revisionDate: form.revisionDate || null,
+    expiryDate: form.expiryDate || null,
+    status: form.status,
+    updatedAt,
+    sections: sectionDefinitions.map((section) => ({
+      sectionNumber: section.number,
+      title: section.title,
+      content: form[section.key],
+    })),
+  });
+}
+
+function splitTextareaLines(value: string) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function chipBaseSx(bgcolor: string, color = 'text.primary') {
