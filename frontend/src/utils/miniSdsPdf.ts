@@ -67,7 +67,11 @@ export function openChemicalCardPrintPreview(document: SdsDocument) {
 }
 
 export function openChemicalCardDraftPrintPreview(card: ChemicalCardDraft) {
-  openPrintWindow(`Kemikaalikaart - ${card.productName}`, buildChemicalCardHtml(card));
+  openPrintWindow(`Kemikaalikaart - ${card.productName}`, buildChemicalCardPreviewHtml(card));
+}
+
+export function buildChemicalCardPreviewHtml(card: ChemicalCardDraft) {
+  return buildChemicalCardHtml(card).replace(/__TITLE__/g, escapeHtml(`Kemikaalikaart - ${card.productName}`));
 }
 
 export function buildChemicalCardDraftFromDocument(document: SdsDocument): ChemicalCardDraft {

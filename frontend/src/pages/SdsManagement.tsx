@@ -6,6 +6,7 @@ import {
   Chip,
   CircularProgress,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
@@ -35,8 +36,7 @@ import {
 import ChemRegButton from '../components/ChemRegButton';
 import {
   buildChemicalCardDraftFromSnapshot,
-  openChemicalCardDraftPrintPreview,
-  openChemicalCardPrintPreview,
+  buildChemicalCardPreviewHtml,
   openMiniSdsPrintPreview,
   type ChemicalCardDraft,
 } from '../utils/miniSdsPdf';
@@ -164,6 +164,8 @@ export default function SdsManagement() {
   const [error, setError] = useState('');
   const [extractionStatus, setExtractionStatus] = useState<SdsExtractionResponse['status'] | null>(null);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
+  const [chemicalCardPreviewHtml, setChemicalCardPreviewHtml] = useState<string | null>(null);
+  const chemicalCardPreviewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadDocuments() {
@@ -272,6 +274,15 @@ export default function SdsManagement() {
     }
   };
 
+  const openChemicalCardPreview = (card: ChemicalCardDraft) => {
+    try {
+      setChemicalCardPreviewHtml(buildChemicalCardPreviewHtml(card));
+    } catch (err) {
+      const nextError = err as Error;
+      setError(nextError.message || 'Chemical card generation failed');
+    }
+  };
+
   const handleGenerateChemicalCard = (id: string) => {
     const existing = documents.find((document) => document.id === id);
     if (!existing) {
@@ -279,12 +290,21 @@ export default function SdsManagement() {
       return;
     }
 
-    try {
-      openChemicalCardPrintPreview(existing);
-    } catch (err) {
-      const nextError = err as Error;
-      setError(nextError.message || 'Chemical card generation failed');
-    }
+    openChemicalCardPreview(buildChemicalCardDraftFromSnapshot({
+      productName: existing.productName,
+      supplierNameRaw: existing.supplierNameRaw,
+      language: existing.language,
+      countryFormat: existing.countryFormat,
+      revisionDate: existing.revisionDate,
+      expiryDate: existing.expiryDate,
+      status: existing.status,
+      updatedAt: existing.updatedAt,
+      sections: existing.sections.map((section) => ({
+        sectionNumber: section.sectionNumber,
+        title: section.title,
+        content: section.content,
+      })),
+    }));
   };
 
   const upsertDocument = (saved: SdsDocument) => {
@@ -770,7 +790,7 @@ export default function SdsManagement() {
                   <ChemRegButton variant="outline" onClick={refreshChemicalCardPrefill}>
                     Refresh from SDS
                   </ChemRegButton>
-                  <ChemRegButton variant="outline" onClick={() => openChemicalCardDraftPrintPreview(chemicalCardForm)}>
+                  <ChemRegButton variant="outline" onClick={() => openChemicalCardPreview(chemicalCardForm)}>
                     Preview GPV A4 card
                   </ChemRegButton>
                 </Stack>
@@ -869,7 +889,7 @@ export default function SdsManagement() {
                       <ChemRegButton variant="outline" onClick={() => handleGenerateMiniSds(selectedId)}>
                         Generate mini SDS PDF
                       </ChemRegButton>
-                      <ChemRegButton variant="outline" onClick={() => openChemicalCardDraftPrintPreview(chemicalCardForm)}>
+                      <ChemRegButton variant="outline" onClick={() => openChemicalCardPreview(chemicalCardForm)}>
                         Generate GPV A4 card
                       </ChemRegButton>
                     </>
@@ -883,6 +903,42 @@ export default function SdsManagement() {
             </Card>
           </Stack>
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(chemicalCardPreviewHtml)} onClose={() => setChemicalCardPreviewHtml(null)} maxWidth="lg" fullWidth>
+        <DialogTitle>GPV A4 chemical card preview</DialogTitle>
+        <DialogContent dividers sx={{ p: 0, bgcolor: '#e5e7eb' }}>
+          {chemicalCardPreviewHtml ? (
+            <Box sx={{ height: '80vh', minHeight: 720 }}>
+              <Box
+                component="iframe"
+                ref={chemicalCardPreviewFrameRef}
+                title="GPV A4 chemical card preview"
+                srcDoc={chemicalCardPreviewHtml}
+                sx={{ width: '100%', height: '100%', border: 0, bgcolor: 'white' }}
+              />
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <ChemRegButton variant="outline" onClick={() => setChemicalCardPreviewHtml(null)}>
+            Close
+          </ChemRegButton>
+          <ChemRegButton
+            variant="primary"
+            onClick={() => {
+              const frameWindow = chemicalCardPreviewFrameRef.current?.contentWindow;
+              if (!frameWindow) {
+                setError('Chemical card preview is not ready for printing yet');
+                return;
+              }
+              frameWindow.focus();
+              frameWindow.print();
+            }}
+          >
+            Print / Save PDF
+          </ChemRegButton>
+        </DialogActions>
       </Dialog>
     </Box>
   );
