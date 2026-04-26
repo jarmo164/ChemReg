@@ -1,171 +1,108 @@
 # ChemReg
 
-ChemReg on kemikaaliohutuse ja vastavuse halduse veebirakendus. Projekti eesmark on viia koondatud vaatesse kemikaalide register, SDS haldus, riskihinnangud ja auditiks vajaliku toe funktsioonid, et organisatsioon saaks oigusnouded paremini kontrolli all hoida.
+ChemReg on kemikaaliohutuse ja vastavuse halduse veebirakendus. Fookus on tuua SDS-id, kemikaaliregister, inventuur ja seotud operatiivsed töövood ühte süsteemi, et organisatsioon saaks kemikaaliandmeid hallata vähem Exceli ja vähem juhuse najal.
 
-Praegune repos olev versioon on tehniline baas, kus on olemas rakenduse karkass, peamised tehnoloogilised kihid ja osa API pinnast. Mitmed toote tuumavood on veel iteratiivses arenduses.
+Praegune `test` haru ei ole enam ainult karkass — siin on mitu päris MVP voogu juba live API peal, aga kogu pilot-ready latt ei ole veel täis.
 
-## Miks see projekt olemas on
+## Mis on päriselt olemas
 
-- Vahendada hajutatud kemikaaliinfot (tabelid, failid, meilid) uhesse hallatavasse rakendusse.
-- Anda meeskonnale uhtne toovoog kemikaaliandmete ja nendega seotud riskide haldamiseks.
-- Luua platvorm, mida saab laiendada tootmiskupsuseks samm-sammult, ilma et arhitektuur tuleks hiljem umber teha.
+- login + access/refresh token sessioonimudel
+- backend RBAC ja tenant-scoped ligipääs põhivoodudes
+- chemical product CRUD koos downstream-metaandmetega
+- SDS document list/detail/create/update
+- SDS failide upload / preview / download
+- SDS PDF assistive extraction tekstipõhiste PDF-ide jaoks
+- mini-SDS editor, mis saab extraction drafti eeltäiteks
+- GPV A4 chemical card preview/generation frontendis
+- site + hierarchical location CRUD
+- inventory item CRUD ja live inventory register
+- Docker Compose lokaalne jooksutamine
+- GitHub Actions deploy pipeline
 
-## Arhitektuur ja tehnoloogiavirn
+## Mis on veel pooleli
 
-| Kiht | Tehnoloogia | Staatus |
-|------|-------------|---------|
-| Frontend | React 19, React Router 7, MUI 7 | olemas |
-| Backend | Java 21, Spring Boot 4.0.3 (WebMVC, JPA, Validation) | olemas |
-| Andmebaas | PostgreSQL 17 | olemas |
-| Migratsioonid | Flyway | olemas |
-| API dokumentatsioon | Springdoc OpenAPI / Swagger UI | olemas |
-| Konteinerid | Docker + Docker Compose | olemas |
+- risk assessment päris approval lifecycle
+- vähemalt üks backendist genereeritav ametlik PDF/report flow
+- tugevam integration + E2E kate
+- scanned PDF / OCR tugi SDS ingestis
+- manifest/export baas MVP reporting pathis
 
-Teenuste paigutus `docker-compose.yaml` pohjal:
+## Tehnoloogiavirn
 
-- `db` (PostgreSQL)
-- `backend` (Spring Boot, soltub `db` teenusest)
-- `frontend` (React, soltub `backend` teenusest)
+| Kiht | Tehnoloogia |
+|------|-------------|
+| Frontend | React 19, React Router 7, MUI 7 |
+| Backend | Java 21, Spring Boot 4.0.3, Spring Security, JPA, Validation |
+| PDF parsing | Apache PDFBox 3 |
+| Andmebaas | PostgreSQL 17 |
+| Migratsioonid | Flyway |
+| API docs | Springdoc OpenAPI / Swagger UI |
+| Konteinerid | Docker Compose |
 
-## Süsteemi arhitektuur
+## Olulised töövood täna
 
-ChemReg on ehitatud 3-kihilise rakendusena:
+### SDS import flow
 
-- Frontend: React SPA, mis haldab kasutajaliidest, route'e ja API kutseid.
-- Backend: Spring Boot REST teenus, kus asuvad domeeniloogika, valideerimine ja endpointid.
-- Andmekiht: PostgreSQL andmebaas, mille skeemi haldab Flyway migratsioonide kaudu.
+1. kasutaja loob või avab SDS kirje
+2. attachib originaalse SDS PDF-i
+3. backend salvestab faili ja proovib sellest teksti välja võtta
+4. parser kaardistab drafti mini-SDS vormi kujule
+5. frontend täidab vormi automaatselt nii palju kui võimalik
+6. kasutaja kontrollib, parandab ja salvestab lõpliku SDS-i
+7. originaal PDF jääb süsteemi preview/download jaoks alles
 
-Pohiandmevoog:
+### Extraction piirid
 
-- Kasutaja teeb tegevuse brauseris -> frontend saadab REST paringu backendile -> backend loeb/salvestab andmed PostgreSQL-i -> frontend kuvab tulemuse kasutajale.
+- toetatud: tekstipõhised PDF-id
+- osaliselt toetatud: räpase layoutiga tekst-PDF-id
+- mitte toetatud MVP-s: scanned/OCR-only PDF-id
+- extraction ei ole autoritatiivne import; inimene peab tulemuse üle vaatama
 
-Deploy voog:
+### GPV chemical card
 
-- Arendusharu muudatused kaivitavad GitHub Actions workflow -> builditakse frontend ja backend -> artefakt juurutatakse serverisse.
+SDS vaates saab olemasolevast mini-SDS sisust genereerida ühe lehe A4 GPV kemikaalikaardi preview. See on praegu frontend-põhine print/export flow, mitte veel backendi ametlik dokumentide genereerimine.
 
-Auth seis kõrgtasemel:
+## Rollid ja ligipääs
 
-- Login/refresh/logout backend endpointid on olemas.
-- Frontend kasutab access + refresh token session mudelit ning proovib aegunud access tokeni enne API kutset uuendada.
-- 401 korral tehakse uks refresh-jargne retry; kui refresh ebaonnestub, sessioon puhastatakse.
+MVP rollireeglid on tsentraliseeritud backendis:
 
-Detailne tehniline vaade:
+- `MVP_READ_ROLES`: `ORG_ADMIN`, `EHS_MANAGER`, `SITE_MANAGER`, `USER`, `AUDITOR`, `SUPPLIER`
+- `MVP_MANAGE_ROLES`: `ORG_ADMIN`, `EHS_MANAGER`, `SITE_MANAGER`
+- `SDS_AUTHOR_ROLES`: `ORG_ADMIN`, `EHS_MANAGER`, `SITE_MANAGER`, `USER`
 
-- [Technical overview](wiki/Technical-overview.md)
-- [API and auth status](wiki/API-and-auth-status.md)
+See tähendab, et SDS create/update/upload/extract voog on nüüd teadlikult lubatud ka `USER` rollile.
 
-## Hetkeseis (aus vaade)
+## Käivitamine
 
-### Praegu olemas
+### Variant A — Docker Compose
 
-- Frontendi route-karkass ja sisse-logimise UX voog (`/login`, kaitstud route'id `RequireAuth` kaudu).
-- Frontendi login on uhendatud backendi autentimise endpointiga (`POST /api/auth/login`) ning kasutab uhtset API kliendikihti.
-- Dashboard ning mitmed moodulivaated (osa lehti on teadlikult placeholder-staatuses).
-- Backendis toimivad endpointid:
-  - `POST /api/auth/login`
-  - `POST /api/users`
-  - `GET/POST/PUT/DELETE /api/chemical-products` (now includes product code, supplier, default unit, storage class, use description, SDS link)
-  - `GET/POST/PUT /api/sds-documents`
-- `GET/POST/PUT /api/sites`
-- `GET/POST/PUT /api/sites/{siteId}/locations`
-- `GET/POST/PUT/DELETE /api/inventory-items`
-  - `POST /api/sds-documents/{id}/files`
-  - `GET /api/sds-documents/{documentId}/files/{fileId}/download`
-  - `GET /api/sds-documents/{documentId}/files/{fileId}/preview`
-- Flyway migratsioonide tugi ja PostgreSQL uhendus.
-- Deploy workflow GitHub Actionsis, mis buildib frontend + backend ning juurutab serverisse.
-
-### Pooleli / jargmine samm
-
-- Rakenduse HTTP turbekiht ja autoriseerimisreeglid vajavad laiendamist kogu API pinnal, eriti inventuuri ja riski moodulites.
-- SDS failide storage on MVP-s kohaliku filesystem contractiga; hilisem S3/MinIO vahetus on endiselt eraldi infrastruktuuriotsus.
-- Chemical registry kannab nuud ka downstream-vajalikku baasmetaandmestikku: product code, supplier, default unit, storage class ja use description.
-- Site/location baas-API on olemas ning location parent peab jaama sama tenant'i sama site'i sisse.
-- Inventory item CRUD on olemas koos product/location linkage, quantity/unit, status, container, lot ja stock threshold valjadega.
-- Frontendis on nuud olemas live `Inventory Register` vaade, mis kasutab paris API-sid toodete, site'ide, location'ide ja inventory item'ite jaoks.
-- Automaatsete testide katvus on endiselt liiga napp inventuuri, riski ja E2E tasemel.
-- MVP funktsioonid (inventuur, riskihinnangu taisvood, raportid/labelid) on osaliselt planeeritud, mitte taielikult implementeeritud.
-
-## Release bar: millal ChemReg on "ready"
-
-ChemRegi ei loeta pilot-ready seisus olevaks enne, kui allolev minimaalne valmidusbar on taidetud.
-
-### Noutud toovood
-
-- autentimine, sessiooni taastumine ja logout toimivad usaldusvaarsete tokenitega
-- RBAC ja scope-kontroll toimivad backendis, mitte ainult route-kihis
-- SDS loomine / uleslaadimine / detail / versioonihaldus toimib parisandmetega kohaliku storage contracti peal
-- chemical registry kannab parisandmetega minimaalset downstream-metaandmestikku labels/inventory/risk voogude jaoks
-- site/location haldus toimib tenant-scoped backend API kaudu ja annab inventuurile reaalse hierarhia aluse
-- inventory item CRUD toimib parisandmetega tenant-scoped backend API kaudu
-- inventory/register UI kasutab parisandmeid, mitte placeholder-lehte
-- chemical registry ja inventory + location flow toimivad parisandmetega
-- riskihinnangu baasvoog ja kinnitusring toimivad MVP ulatuses
-- vahemalt uks raport voi dokumendivaljund (nt label voi risk PDF) on kasutatav
-
-### Noutud kvaliteedikontrollid
-
-- backendi kriitilistele voogudele on unit/integration testid
-- frontendil on vahemalt peamiste happy pathide testid
-- olemas on vahemalt uks E2E test login -> core workflow teekonnale
-- CI peatab deploy, kui kohustuslik build voi test kukub labi
-
-### Noutud infra ja operatiivne valmisolek
-
-- keskkonnamuutujad ja secretsi kasutus on dokumenteeritud
-- migratsioonid jooksevad korratavalt puhtas keskkonnas
-- deploy/runbook kirjeldab buildi, juurutust, rollbacki ja taaste baasvoogu
-- storage/search/notification integratsioonide MVP piir on selgelt otsustatud
-
-### Noutud dokumentatsioon
-
-- README, wiki ja arendusdokument kirjeldavad sama stacki ja scope'i
-- MVP, post-MVP ja enterprise-only piirid on selgelt eristatud
-- teadaolevad piirangud on ausalt dokumenteeritud
-
-## Kaivitamine
-
-### 1) Soovituslik: Docker Compose
-
-Eeldused:
-
-- Docker Desktop (voi Docker Engine + Compose plugin)
-- Kohandatud `.env` fail projekti juurkaustas
-
-Kaivitus:
+Praegune backendi Dockerfile eeldab, et jar on enne builditud hostis valmis.
 
 ```bash
+cd backend
+./gradlew bootJar
+cd ..
 docker compose up --build
 ```
 
 Vaikimisi pordid:
 
-| Teenus | Aadress |
-|--------|---------|
-| Frontend | http://localhost:3000 |
-| Backend | http://localhost:8080 |
-| PostgreSQL | localhost:5432 |
+- frontend: `http://localhost:3000`
+- backend: `http://localhost:8080`
+- postgres: `localhost:5432`
 
-### 2) Lokaalne kaivitus ilma Dockerita
+### Variant B — lokaalne ilma Dockerita
 
 Eeldused:
-
 - Java 21
-- Node.js 20
-- Jooksev PostgreSQL instants
+- Node 20
+- PostgreSQL
 
 Backend:
 
 ```bash
 cd backend
 ./gradlew bootRun --args='--spring.profiles.active=local'
-```
-
-Windows CMD korral:
-
-```bat
-cd backend
-gradlew.bat bootRun --args="--spring.profiles.active=local"
 ```
 
 Frontend:
@@ -178,9 +115,9 @@ npm start
 
 ## Keskkonnamuutujad
 
-`docker-compose.yaml` loeb vaartused `.env` failist. Alustuseks kopeeri juurkaustas `.env.example` fail nimega `.env` ja kohanda vaartused oma keskkonnale.
+`docker-compose.yaml` loeb väärtused juurkausta `.env` failist.
 
-Minimaalselt peavad olema maaratud:
+Minimaalselt peavad olemas olema:
 
 - `POSTGRES_VERSION`
 - `POSTGRES_DB`
@@ -189,74 +126,40 @@ Minimaalselt peavad olema maaratud:
 - `DB_PORT`
 - `BACKEND_PORT`
 - `FRONTEND_PORT`
-- konteinerinimed (`DB_CONTAINER_NAME`, `BACKEND_CONTAINER_NAME`, `FRONTEND_CONTAINER_NAME`)
-- JWT seaded (`APP_JWT_ISSUER`, `APP_JWT_SECRET`, `APP_JWT_ACCESS_TOKEN_MINUTES`, `APP_JWT_REFRESH_TOKEN_DAYS`)
+- `DB_CONTAINER_NAME`
+- `BACKEND_CONTAINER_NAME`
+- `FRONTEND_CONTAINER_NAME`
+- `APP_JWT_ISSUER`
+- `APP_JWT_SECRET`
+- `APP_JWT_ACCESS_TOKEN_MINUTES`
+- `APP_JWT_REFRESH_TOKEN_DAYS`
+- `REACT_APP_API_URL`
 
-Marge: repo voib sisaldada erinevaid vaikenaitedokumente; arvesta alati jooksva `docker-compose.yaml` sisuga kui todeallikaga.
+## Kvaliteedivärav hetkel
 
-`REACT_APP_API_URL` kasutus:
+Kontrollitud viimases ringis:
 
-- Lokaalarenduses kasuta vaartust `http://localhost:8080` (see on ka frontendi vaikimisi fallback).
-- Docker Compose lokaalses kaivituses toimib sama aadress, sest backend eksponeeritakse hosti pordile `${BACKEND_PORT}`.
-- Kui backend on teisel domeenil voi pordil, sea `REACT_APP_API_URL` frontendi buildi ajal vastavaks sellele avalikule API aadressile.
+- backend: `./gradlew test --tests com.chemreg.chemreg.sds.service.SdsPdfExtractionServiceTest`
+- frontend: `npm run build`
 
-JWT muutujad local profiiliga:
+Aga täielik MVP kvaliteedibaar vajab endiselt:
 
-- `backend/src/main/resources/application-local.yaml` loeb JWT vaartused keskkonnast (`APP_JWT_*`), vaikimisi fallbackidega `APP_JWT_ISSUER=ChemReg`, `APP_JWT_ACCESS_TOKEN_MINUTES=15`, `APP_JWT_REFRESH_TOKEN_DAYS=30`.
-- `APP_JWT_SECRET` tuleb alati ise maarata (turvaline ja piisavalt pikk saladus), sest sellele fallbacki ei ole.
+- rohkem backend integration teste
+- frontend happy-path testide laiendamist SDS/inventory peale
+- vähemalt ühte E2E teekonda
 
-## API ja auth staatus (luhidalt)
+## Dokumentatsioon
 
-- Backendis on auth endpoint olemas (`POST /api/auth/login`) ning user/chemical mooduli baas-API samuti olemas.
-- Frontendi login kutsub reaalselt backendi `/api/auth/login` endpointi ja kasutab `apiClient` kihti.
-- Frontendi auth pusiandmete mudel vajab koondamist tugevamaks sessiooni/tokeni lahenduseks.
-- OpenAPI/Swagger on arenduskeskkonnas saadaval (`/swagger-ui.html` ja `/v3/api-docs` local profiiliga).
+Wiki elab nüüd eraldi GitHub wiki repos, mitte selles koodirepos.
 
-Detailne ja uuenev seis:
-
-- [API and auth status](wiki/API-and-auth-status.md)
-
-## Testimine ja kvaliteet
-
-Praegune seis:
-
-- Backendis on testisoltuvused olemas, kuid integration/E2E kate on endiselt napp.
-- Frontendis on olemas sessiooni ja API refresh loogika testid ning baas auth smoke-testid.
-- Deploy workflow peab kvaliteedibarri osana jooksutama teste enne deployd.
-
-Detailid ja soovituslik minimaalne testibaas:
-
-- [Testing status](wiki/Testing-status.md)
-
-## Deploy ja CI/CD
-
-- Juurutus toimub GitHub Actions workflow kaudu: `.github/workflows/deploy.yml`
-- Trigger: `push` harule `dev`
-- Pipeline buildib backendi + frontendi, pakib artefakti ja juurutab serverisse SSH kaudu.
-- Tulemusena valideeritakse peamiselt build/deploy terviklikkust, mitte taismahus testikvaliteeti.
-
-Taielik deploy kirjeldus:
-
-- [Deployment](wiki/Deployment.md)
-
-## Wiki navigeerimine
-
-Peamised wiki lehed:
-
-- [Home](wiki/Home.md)
-- [API and auth status](wiki/API-and-auth-status.md)
-- [Testing status](wiki/Testing-status.md)
-- [Deployment](wiki/Deployment.md)
-- [Workflows](wiki/Workflows.md)
-- [MVP](wiki/MVP.md)
-- [Presentation video script](wiki/Presentation-video-script.md)
-
-Lisaks:
-
-- [Source assignment](wiki/Source-assignment.md)
-- [Technical overview](wiki/Technical-overview.md)
-- [Server runbook](wiki/Server-runbook.md)
-- [User stories](wiki/User-stories.md)
+- [Wiki home](https://github.com/jarmo164/ChemReg/wiki)
+- [Technical overview](https://github.com/jarmo164/ChemReg/wiki/Technical-overview)
+- [API and auth status](https://github.com/jarmo164/ChemReg/wiki/API-and-auth-status)
+- [MVP scope](https://github.com/jarmo164/ChemReg/wiki/MVP)
+- [Workflows](https://github.com/jarmo164/ChemReg/wiki/Workflows)
+- [Testing status](https://github.com/jarmo164/ChemReg/wiki/Testing-status)
+- [Deployment](https://github.com/jarmo164/ChemReg/wiki/Deployment)
+- [Server runbook](https://github.com/jarmo164/ChemReg/wiki/Server-runbook)
 
 ## Litsents
 
