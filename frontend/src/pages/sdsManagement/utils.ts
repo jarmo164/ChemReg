@@ -1,6 +1,7 @@
 import type { SdsDocument, SaveSdsDocumentRequest } from '../../api/sds';
+import { buildChemicalCardDraftFromSnapshot } from '../../utils/miniSdsPdf';
 import { SECTION_DEFINITIONS } from './constants';
-import type { MiniSdsForm, SdsStatus } from './types';
+import type { ChemicalCardForm, MiniSdsForm, SdsStatus } from './types';
 
 export function createEmptyForm(): MiniSdsForm {
   return {
@@ -99,3 +100,28 @@ export const tableHeadCellSx = {
   color: 'text.secondary',
   textTransform: 'uppercase',
 } as const;
+
+export function createChemicalCardForm(form: MiniSdsForm, updatedAt?: string): ChemicalCardForm {
+  return buildChemicalCardDraftFromSnapshot({
+    productName: form.productName,
+    supplierNameRaw: form.supplierNameRaw || null,
+    language: form.language,
+    countryFormat: form.countryFormat,
+    revisionDate: form.revisionDate || null,
+    expiryDate: form.expiryDate || null,
+    status: form.status,
+    updatedAt,
+    sections: SECTION_DEFINITIONS.map((section) => ({
+      sectionNumber: section.number,
+      title: section.title,
+      content: form[section.key],
+    })),
+  });
+}
+
+export function splitTextareaLines(value: string): string[] {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}

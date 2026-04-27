@@ -1,4 +1,7 @@
 import type { BackendSdsStatus, SdsFile } from '../../api/sds';
+import type { ChemicalCardDraft } from '../../utils/miniSdsPdf';
+
+export type ChemicalCardForm = ChemicalCardDraft;
 
 export type SdsStatus = 'current' | 'expiring_soon' | 'expired';
 

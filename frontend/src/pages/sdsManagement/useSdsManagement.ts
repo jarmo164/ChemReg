@@ -10,10 +10,15 @@ import {
   type SdsExtractionResponse,
   type SaveSdsDocumentRequest,
 } from '../../api/sds';
-import { openMiniSdsPrintPreview } from '../../utils/miniSdsPdf';
-import { SECTION_DEFINITIONS } from './constants';
-import type { FilterCounts, MiniSdsForm, MiniSdsMode, SdsListRow, SdsStatus } from './types';
 import {
+  buildChemicalCardDraftFromSnapshot,
+  buildChemicalCardPreviewHtml,
+  openMiniSdsPrintPreview,
+} from '../../utils/miniSdsPdf';
+import { SECTION_DEFINITIONS } from './constants';
+import type { ChemicalCardForm, FilterCounts, MiniSdsForm, MiniSdsMode, SdsListRow, SdsStatus } from './types';
+import {
+  createChemicalCardForm,
   createEmptyForm,
   extractCasPreview,
   formFromDocument,
@@ -29,6 +34,7 @@ export function useSdsManagement() {
   const [mode, setMode] = useState<MiniSdsMode>('create');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<MiniSdsForm>(createEmptyForm());
+  const [chemicalCardForm, setChemicalCardForm] = useState<ChemicalCardForm>(() => createChemicalCardForm(createEmptyForm()));
   const [generatedJson, setGeneratedJson] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,6 +42,8 @@ export function useSdsManagement() {
   const [error, setError] = useState('');
   const [extractionStatus, setExtractionStatus] = useState<SdsExtractionResponse['status'] | null>(null);
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
+  const [chemicalCardPreviewHtml, setChemicalCardPreviewHtml] = useState<string | null>(null);
+  const chemicalCardPreviewFrameRef = useRef<HTMLIFrameElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadDocuments = useCallback(async () => {
@@ -106,9 +114,11 @@ export function useSdsManagement() {
   }, []);
 
   const openCreateDialog = useCallback(() => {
+    const emptyForm = createEmptyForm();
     setMode('create');
     setSelectedId(null);
-    setForm(createEmptyForm());
+    setForm(emptyForm);
+    setChemicalCardForm(createChemicalCardForm(emptyForm));
     setGeneratedJson('');
     setExtractionStatus(null);
     setExtractionWarnings([]);
@@ -120,10 +130,12 @@ export function useSdsManagement() {
     const existing = documents.find((document) => document.id === id);
     if (!existing) return;
 
+    const nextForm = formFromDocument(existing);
     setMode('edit');
     setSelectedId(id);
-    setForm(formFromDocument(existing));
-    setGeneratedJson(JSON.stringify(payloadFromForm(formFromDocument(existing)), null, 2));
+    setForm(nextForm);
+    setChemicalCardForm(createChemicalCardForm(nextForm, existing.updatedAt));
+    setGeneratedJson(JSON.stringify(payloadFromForm(nextForm), null, 2));
     setExtractionStatus(null);
     setExtractionWarnings([]);
     resetFilePicker();
@@ -189,6 +201,7 @@ export function useSdsManagement() {
         }
       }
 
+      setChemicalCardForm(createChemicalCardForm(next));
       return next;
     });
   }, []);
@@ -215,6 +228,53 @@ export function useSdsManagement() {
       setError(nextError.message || 'Mini SDS generation failed');
     }
   }, [documents]);
+
+  const openChemicalCardPreview = useCallback((card: ChemicalCardForm) => {
+    try {
+      setChemicalCardPreviewHtml(buildChemicalCardPreviewHtml(card));
+    } catch (err) {
+      const nextError = err as Error;
+      setError(nextError.message || 'Chemical card generation failed');
+    }
+  }, []);
+
+  const closeChemicalCardPreview = useCallback(() => {
+    setChemicalCardPreviewHtml(null);
+  }, []);
+
+  const printChemicalCard = useCallback(() => {
+    const frameWindow = chemicalCardPreviewFrameRef.current?.contentWindow;
+    if (!frameWindow) {
+      setError('Chemical card preview is not ready for printing yet');
+      return;
+    }
+    frameWindow.focus();
+    frameWindow.print();
+  }, []);
+
+  const handleGenerateChemicalCard = useCallback((id: string) => {
+    const existing = documents.find((document) => document.id === id);
+    if (!existing) {
+      setError('SDS document not found for generation');
+      return;
+    }
+
+    openChemicalCardPreview(buildChemicalCardDraftFromSnapshot({
+      productName: existing.productName,
+      supplierNameRaw: existing.supplierNameRaw,
+      language: existing.language,
+      countryFormat: existing.countryFormat,
+      revisionDate: existing.revisionDate,
+      expiryDate: existing.expiryDate,
+      status: existing.status,
+      updatedAt: existing.updatedAt,
+      sections: existing.sections.map((section) => ({
+        sectionNumber: section.sectionNumber,
+        title: section.title,
+        content: section.content,
+      })),
+    }));
+  }, [documents, openChemicalCardPreview]);
 
   const handleOpenFile = useCallback(async (documentId: string, fileId: string, openMode: 'preview' | 'download') => {
     setError('');
@@ -277,6 +337,15 @@ export function useSdsManagement() {
     setForm((current) => ({ ...current, [field]: value }));
   }, []);
 
+  const setChemicalCardField = useCallback((field: keyof ChemicalCardForm, value: string | string[]) => {
+    setChemicalCardForm((current) => ({ ...current, [field]: value }));
+  }, []);
+
+  const refreshChemicalCardPrefill = useCallback(() => {
+    const existing = selectedId ? documents.find((document) => document.id === selectedId) : undefined;
+    setChemicalCardForm(createChemicalCardForm(form, existing?.updatedAt));
+  }, [documents, form, selectedId]);
+
   const handleSubmit = useCallback(async () => {
     if (!form.productName.trim()) {
       setError('Product name is required');
@@ -320,6 +389,7 @@ export function useSdsManagement() {
     selectedId,
     selectedDocument,
     form,
+    chemicalCardForm,
     generatedJson,
     isLoading,
     isSaving,
@@ -330,11 +400,14 @@ export function useSdsManagement() {
     fileInputRef,
     filteredDocuments,
     filterCounts,
+    chemicalCardPreviewHtml,
+    chemicalCardPreviewFrameRef,
 
     // Actions
     setSearch,
     setStatusFilter,
     setField,
+    setChemicalCardField,
     loadDocuments,
     openCreateDialog,
     openEditDialog,
@@ -343,6 +416,11 @@ export function useSdsManagement() {
     handlePdfSelected,
     handleOpenFile,
     handleGenerateMiniSds,
+    handleGenerateChemicalCard,
+    openChemicalCardPreview,
+    closeChemicalCardPreview,
+    printChemicalCard,
+    refreshChemicalCardPrefill,
     runPdfExtraction,
   };
 }

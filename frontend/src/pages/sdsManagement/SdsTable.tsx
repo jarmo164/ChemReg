@@ -26,6 +26,7 @@ type SdsTableProps = {
   onView: (id: string) => void;
   onOpenFile: (documentId: string, fileId: string, mode: 'preview' | 'download') => void;
   onGenerateMiniSds: (id: string) => void;
+  onGenerateChemicalCard: (id: string) => void;
 };
 
 export default function SdsTable({
@@ -34,6 +35,7 @@ export default function SdsTable({
   onView,
   onOpenFile,
   onGenerateMiniSds,
+  onGenerateChemicalCard,
 }: SdsTableProps) {
   if (isLoading) {
     return (
@@ -119,8 +121,11 @@ export default function SdsTable({
                       <PdfIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   )}
-                  <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => onGenerateMiniSds(sds.id)}>
+                  <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => onGenerateMiniSds(sds.id)} title="Generate mini SDS PDF">
                     <DownloadIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                  <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => onGenerateChemicalCard(sds.id)} title="Generate GPV chemical card A4">
+                    <PdfIcon sx={{ fontSize: 18 }} />
                   </IconButton>
                 </Stack>
               </TableCell>

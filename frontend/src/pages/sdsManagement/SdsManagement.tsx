@@ -2,6 +2,10 @@ import {
   Alert,
   Box,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   MenuItem,
   Select,
   Stack,
@@ -31,6 +35,7 @@ export default function SdsManagement() {
     selectedId,
     selectedDocument,
     form,
+    chemicalCardForm,
     generatedJson,
     isLoading,
     isSaving,
@@ -41,9 +46,12 @@ export default function SdsManagement() {
     fileInputRef,
     filteredDocuments,
     filterCounts,
+    chemicalCardPreviewHtml,
+    chemicalCardPreviewFrameRef,
     setSearch,
     setStatusFilter,
     setField,
+    setChemicalCardField,
     loadDocuments,
     openCreateDialog,
     openEditDialog,
@@ -52,6 +60,11 @@ export default function SdsManagement() {
     handlePdfSelected,
     handleOpenFile,
     handleGenerateMiniSds,
+    handleGenerateChemicalCard,
+    openChemicalCardPreview,
+    closeChemicalCardPreview,
+    printChemicalCard,
+    refreshChemicalCardPrefill,
     runPdfExtraction,
   } = useSdsManagement();
 
@@ -82,6 +95,7 @@ export default function SdsManagement() {
         onView={openEditDialog}
         onOpenFile={(docId, fileId, mode) => void handleOpenFile(docId, fileId, mode)}
         onGenerateMiniSds={handleGenerateMiniSds}
+        onGenerateChemicalCard={handleGenerateChemicalCard}
       />
 
       <SdsDialog
@@ -90,6 +104,7 @@ export default function SdsManagement() {
         selectedId={selectedId}
         selectedDocument={selectedDocument}
         form={form}
+        chemicalCardForm={chemicalCardForm}
         generatedJson={generatedJson}
         isSaving={isSaving}
         isUploadingFile={isUploadingFile}
@@ -98,11 +113,22 @@ export default function SdsManagement() {
         fileInputRef={fileInputRef}
         onClose={closeDialog}
         onFieldChange={setField}
+        onChemicalCardFieldChange={setChemicalCardField}
+        onRefreshChemicalCardPrefill={refreshChemicalCardPrefill}
         onSubmit={() => void handleSubmit()}
         onPdfSelected={(e) => void handlePdfSelected(e)}
         onOpenFile={(docId, fileId, mode) => void handleOpenFile(docId, fileId, mode)}
         onGenerateMiniSds={handleGenerateMiniSds}
+        onOpenChemicalCardPreview={openChemicalCardPreview}
         onRunExtraction={(docId, fileId) => void runPdfExtraction(docId, fileId)}
+      />
+
+      <ChemicalCardPreviewDialog
+        open={Boolean(chemicalCardPreviewHtml)}
+        html={chemicalCardPreviewHtml}
+        frameRef={chemicalCardPreviewFrameRef}
+        onClose={closeChemicalCardPreview}
+        onPrint={printChemicalCard}
       />
     </Box>
   );
@@ -215,5 +241,48 @@ function ExpiredWarning({ count }: { count: number }) {
         Review required
       </Typography>
     </Box>
+  );
+}
+
+type ChemicalCardPreviewDialogProps = {
+  open: boolean;
+  html: string | null;
+  frameRef: React.RefObject<HTMLIFrameElement | null>;
+  onClose: () => void;
+  onPrint: () => void;
+};
+
+function ChemicalCardPreviewDialog({
+  open,
+  html,
+  frameRef,
+  onClose,
+  onPrint,
+}: ChemicalCardPreviewDialogProps) {
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>GPV A4 chemical card preview</DialogTitle>
+      <DialogContent dividers sx={{ p: 0, bgcolor: '#e5e7eb' }}>
+        {html && (
+          <Box sx={{ height: '80vh', minHeight: 720 }}>
+            <Box
+              component="iframe"
+              ref={frameRef}
+              title="GPV A4 chemical card preview"
+              srcDoc={html}
+              sx={{ width: '100%', height: '100%', border: 0, bgcolor: 'white' }}
+            />
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <ChemRegButton variant="outline" onClick={onClose}>
+          Close
+        </ChemRegButton>
+        <ChemRegButton variant="primary" onClick={onPrint}>
+          Print / Save PDF
+        </ChemRegButton>
+      </DialogActions>
+    </Dialog>
   );
 }
