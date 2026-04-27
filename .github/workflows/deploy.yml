@@ -35,11 +35,23 @@ jobs:
         working-directory: backend
         run: ./gradlew --no-daemon clean build
 
-      - name: Verify backend jar exists
+      - name: Prepare backend jar
         run: |
-          echo "Backend build/libs:"
+          echo "Backend build/libs before cleanup:"
           ls -lh backend/build/libs
-          test -n "$(find backend/build/libs -name '*.jar' -type f)"
+
+          echo "Removing plain jar if it exists..."
+          rm -f backend/build/libs/*-plain.jar
+
+          echo "Backend build/libs after cleanup:"
+          ls -lh backend/build/libs
+
+          JAR_COUNT=$(find backend/build/libs -name '*.jar' -type f | wc -l)
+          if [ "$JAR_COUNT" -ne 1 ]; then
+            echo "ERROR: Expected exactly one backend jar, found $JAR_COUNT"
+            find backend/build/libs -name '*.jar' -type f
+            exit 1
+          fi
 
       - name: Set up Node 20
         uses: actions/setup-node@v4
@@ -176,7 +188,13 @@ jobs:
 
               echo 'Checking backend jar on server...'
               ls -lh backend/build/libs
-              test -n \"\$(find backend/build/libs -name '*.jar' -type f)\"
+
+              JAR_COUNT=\$(find backend/build/libs -name '*.jar' -type f | wc -l)
+              if [ \"\$JAR_COUNT\" -ne 1 ]; then
+                echo \"ERROR: Expected exactly one backend jar on server, found \$JAR_COUNT\"
+                find backend/build/libs -name '*.jar' -type f
+                exit 1
+              fi
 
               if [ ! -f '$DOCKER_COMPOSE_FILE' ]; then
                 echo 'ERROR: $DOCKER_COMPOSE_FILE not found!'
