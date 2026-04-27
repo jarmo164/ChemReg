@@ -35,6 +35,12 @@ jobs:
         working-directory: backend
         run: ./gradlew --no-daemon clean build
 
+      - name: Verify backend jar exists
+        run: |
+          echo "Backend build/libs:"
+          ls -lh backend/build/libs
+          test -n "$(find backend/build/libs -name '*.jar' -type f)"
+
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:
@@ -91,7 +97,6 @@ jobs:
             --exclude='frontend/node_modules' \
             --exclude='frontend/dist' \
             --exclude='backend/.gradle' \
-            --exclude='backend/build' \
             --exclude='.git' \
             --exclude='.github' \
             backend \
@@ -168,6 +173,10 @@ jobs:
 
               echo 'After extract:'
               ls -lh
+
+              echo 'Checking backend jar on server...'
+              ls -lh backend/build/libs
+              test -n \"\$(find backend/build/libs -name '*.jar' -type f)\"
 
               if [ ! -f '$DOCKER_COMPOSE_FILE' ]; then
                 echo 'ERROR: $DOCKER_COMPOSE_FILE not found!'
