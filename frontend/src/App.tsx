@@ -8,7 +8,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import ChemicalRegister from "./pages/ChemicalRegister";
 import InventoryRegister from "./pages/InventoryRegister";
-import SdsManagement from "./pages/SdsManagement";
+import SdsManagement from "./pages/sdsManagement";
 import RiskAssessments from "./pages/RiskAssessments";
 import Compliance from "./pages/Compliance";
 import Settings from "./pages/Settings";
