@@ -63,8 +63,8 @@ describe('miniSdsPdf pictograms', () => {
     const html = buildMiniSdsPreviewHtml(document);
 
     expect(html).toContain('GHS pictograms');
-    expect(html).toContain('FLAM');
-    expect(html).toContain('!');
+    expect(html).toContain('GHS02');
+    expect(html).toContain('GHS07');
     expect(html).toContain('Signal word: Ettevaatust');
   });
 
@@ -77,8 +77,16 @@ describe('miniSdsPdf pictograms', () => {
     const html = buildChemicalCardPreviewHtml(card);
 
     expect(card.pictograms).toEqual(expect.arrayContaining(['GHS05', 'GHS06', 'GHS09']));
-    expect(html).toContain('CORR');
-    expect(html).toContain('TOX');
-    expect(html).toContain('ENV');
+    expect(html).toContain('GHS05');
+    expect(html).toContain('GHS06');
+    expect(html).toContain('GHS09');
+  });
+
+  it('uses explicit GHS codes from section text when present', () => {
+    const document = createDocument('Classification: Skin Irrit. 2. Label elements: GHS05 GHS07. H314 Causes severe skin burns and eye damage.');
+
+    const card = buildChemicalCardDraftFromDocument(document);
+
+    expect(card.pictograms).toEqual(expect.arrayContaining(['GHS05', 'GHS07']));
   });
 });

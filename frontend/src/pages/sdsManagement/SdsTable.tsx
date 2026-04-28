@@ -12,12 +12,15 @@ import {
   Chip,
   TableContainer,
   Tooltip,
+  IconButton,
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
   Download as DownloadIcon,
   PictureAsPdf as PdfIcon,
   Description as DescriptionIcon,
+  Article as ArticleIcon,
+  LocalPrintshop as PrintIcon,
 } from '@mui/icons-material';
 import ChemRegButton from '../../components/ChemRegButton';
 import StatusChip from '../../components/StatusChip';
@@ -32,6 +35,20 @@ type SdsTableProps = {
   onOpenFile: (documentId: string, fileId: string, mode: 'preview' | 'download') => void;
   onGenerateMiniSds: (id: string) => void;
   onGenerateChemicalCard: (id: string) => void;
+};
+
+const actionIconSx = {
+  width: 34,
+  height: 34,
+  border: '1px solid rgba(15,23,42,0.12)',
+  borderRadius: 2,
+  color: 'text.secondary',
+  bgcolor: '#fff',
+  '&:hover': {
+    bgcolor: 'rgba(37, 99, 235, 0.06)',
+    color: 'var(--gpv-primary-500)',
+    borderColor: 'rgba(37, 99, 235, 0.22)',
+  },
 };
 
 export default function SdsTable({
@@ -132,29 +149,59 @@ export default function SdsTable({
                   <StatusChip status={sds.status} />
                 </TableCell>
                 <TableCell sx={{ minWidth: 300, py: 1.5 }}>
-                  <Stack direction={{ xs: 'column', xl: 'row' }} spacing={1} useFlexGap>
-                    <ChemRegButton variant="outline" onClick={() => onView(sds.id)}>
-                      <ViewIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                      Open
-                    </ChemRegButton>
+                  <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap' }} useFlexGap>
+                    <Tooltip title="Ava SDS kirje">
+                      <Box>
+                        <ChemRegButton variant="outline" onClick={() => onView(sds.id)}>
+                          <ViewIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                          Open
+                        </ChemRegButton>
+                      </Box>
+                    </Tooltip>
                     {sds.currentFile ? (
-                      <Tooltip title="Preview source SDS PDF">
-                        <Box>
-                          <ChemRegButton variant="outline" onClick={() => onOpenFile(sds.id, sds.currentFile!.id, 'preview')}>
-                            <PdfIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                            Preview PDF
-                          </ChemRegButton>
-                        </Box>
-                      </Tooltip>
+                      <>
+                        <Tooltip title="Vaata PDF-i">
+                          <IconButton
+                            size="small"
+                            onClick={() => onOpenFile(sds.id, sds.currentFile!.id, 'preview')}
+                            sx={actionIconSx}
+                            aria-label="Vaata PDF-i"
+                          >
+                            <PdfIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Lae PDF alla">
+                          <IconButton
+                            size="small"
+                            onClick={() => onOpenFile(sds.id, sds.currentFile!.id, 'download')}
+                            sx={actionIconSx}
+                            aria-label="Lae PDF alla"
+                          >
+                            <DownloadIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </>
                     ) : null}
-                    <ChemRegButton variant="outline" onClick={() => onGenerateMiniSds(sds.id)}>
-                      <DownloadIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                      Mini SDS
-                    </ChemRegButton>
-                    <ChemRegButton variant="outline" onClick={() => onGenerateChemicalCard(sds.id)}>
-                      <PdfIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                      GPV Card
-                    </ChemRegButton>
+                    <Tooltip title="Genereeri mini SDS">
+                      <IconButton
+                        size="small"
+                        onClick={() => onGenerateMiniSds(sds.id)}
+                        sx={actionIconSx}
+                        aria-label="Genereeri mini SDS"
+                      >
+                        <ArticleIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Genereeri GPV kaart">
+                      <IconButton
+                        size="small"
+                        onClick={() => onGenerateChemicalCard(sds.id)}
+                        sx={actionIconSx}
+                        aria-label="Genereeri GPV kaart"
+                      >
+                        <PrintIcon sx={{ fontSize: 18 }} />
+                      </IconButton>
+                    </Tooltip>
                   </Stack>
                 </TableCell>
               </TableRow>

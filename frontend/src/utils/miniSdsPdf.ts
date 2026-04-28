@@ -42,20 +42,21 @@ type GhsPictogramCode = typeof GHS_PICTOGRAM_ORDER[number];
 type GhsPictogramDefinition = {
   code: GhsPictogramCode;
   label: string;
-  shortLabel: string;
-  symbol: string;
+  imageUrl: string;
 };
 
+const GHS_IMAGE_BASE_URL = 'https://www.msds-europe.com/wp-content/uploads/2018/06';
+
 const GHS_PICTOGRAMS: Record<GhsPictogramCode, GhsPictogramDefinition> = {
-  GHS01: { code: 'GHS01', label: 'Explosive', shortLabel: 'EXP', symbol: '💥' },
-  GHS02: { code: 'GHS02', label: 'Flammable', shortLabel: 'FLAM', symbol: '🔥' },
-  GHS03: { code: 'GHS03', label: 'Oxidizing', shortLabel: 'OX', symbol: 'O' },
-  GHS04: { code: 'GHS04', label: 'Gas under pressure', shortLabel: 'GAS', symbol: '◼' },
-  GHS05: { code: 'GHS05', label: 'Corrosive', shortLabel: 'CORR', symbol: 'CORR' },
-  GHS06: { code: 'GHS06', label: 'Acute toxicity', shortLabel: 'TOX', symbol: '☠' },
-  GHS07: { code: 'GHS07', label: 'Irritant / harmful', shortLabel: '!', symbol: '!' },
-  GHS08: { code: 'GHS08', label: 'Serious health hazard', shortLabel: 'HLTH', symbol: '✚' },
-  GHS09: { code: 'GHS09', label: 'Environmental hazard', shortLabel: 'ENV', symbol: '🐟' },
+  GHS01: { code: 'GHS01', label: 'Explosive', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS01-Hazard-pictogram.jpg` },
+  GHS02: { code: 'GHS02', label: 'Flammable', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS02-Hazard-pictogram.jpg` },
+  GHS03: { code: 'GHS03', label: 'Oxidizing', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS03-Hazard-pictogram.jpg` },
+  GHS04: { code: 'GHS04', label: 'Gas under pressure', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS04-Hazard-pictogram.jpg` },
+  GHS05: { code: 'GHS05', label: 'Corrosive', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS05-Hazard-pictogram.jpg` },
+  GHS06: { code: 'GHS06', label: 'Acute toxicity', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS06-Hazard-pictogram.jpg` },
+  GHS07: { code: 'GHS07', label: 'Irritant / harmful', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS07-Hazard-pictogram.jpg` },
+  GHS08: { code: 'GHS08', label: 'Serious health hazard', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS08-Hazard-pictogram.jpg` },
+  GHS09: { code: 'GHS09', label: 'Environmental hazard', imageUrl: `${GHS_IMAGE_BASE_URL}/GHS09-Hazard-pictogram.jpg` },
 };
 
 export type ChemicalCardDraft = {
@@ -247,9 +248,9 @@ function buildMiniSdsHtml(document: PrintableMiniSds) {
           .ghs-pictogram { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; }
           .ghs-pictogram--mini { min-width: 72px; }
           .ghs-pictogram__label { font-size: 10px; font-weight: 800; color: #475467; text-align: center; }
-          .ghs-svg { width: 58px; height: 58px; display: block; }
-          .ghs-svg--mini { width: 64px; height: 64px; }
-          .ghs-symbol-text { font-family: Inter, Arial, sans-serif; fill: #111827; font-weight: 900; }
+          .ghs-pictogram__name { font-size: 9px; color: #64748b; text-align: center; line-height: 1.2; max-width: 76px; }
+          .ghs-image { width: 58px; height: 58px; display: block; object-fit: contain; }
+          .ghs-image--mini { width: 64px; height: 64px; }
           .sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
           .section-card { display: grid; grid-template-columns: 36px 1fr; gap: 10px; min-height: 120px; }
           .section-number { width: 36px; height: 36px; border-radius: 999px; background: rgba(20, 184, 166, 0.12); color: #0f766e; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; }
@@ -325,8 +326,8 @@ function buildChemicalCardHtml(card: ChemicalCardDraft) {
           .pictograms { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 10px; }
           .ghs-pictogram { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; }
           .ghs-pictogram__label { font-size: 9px; font-weight: 800; color: #475467; text-align: center; line-height: 1.2; }
-          .ghs-svg { width: 56px; height: 56px; display: block; }
-          .ghs-symbol-text { font-family: Inter, Arial, sans-serif; fill: #111827; font-weight: 900; }
+          .ghs-pictogram__name { font-size: 8px; color: #64748b; text-align: center; line-height: 1.2; max-width: 68px; }
+          .ghs-image { width: 56px; height: 56px; display: block; object-fit: contain; }
           .signal { display: inline-block; padding: 5px 9px; border-radius: 999px; background: #111827; color: white; font-size: 11px; font-weight: 800; text-transform: uppercase; }
           .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
           ul { margin: 6px 0 0 18px; padding: 0; }
@@ -491,7 +492,21 @@ function inferPrecautionaryStatements(hazards: string) {
 }
 
 function inferPictograms(hazards: string): GhsPictogramCode[] {
-  const rules: Array<[RegExp, GhsPictogramCode]> = [
+  const explicitCodes = [...hazards.matchAll(/\bGHS0[1-9]\b/gi)].map((match) => match[0].toUpperCase());
+
+  const hCodeRules: Array<[RegExp, GhsPictogramCode[]]> = [
+    [/\bH20[0-5]\b/gi, ['GHS01']],
+    [/\bH22[0-8]\b|\bH24[0-2]\b|\bH25[0-2]\b/gi, ['GHS02']],
+    [/\bH270\b|\bH271\b|\bH272\b/gi, ['GHS03']],
+    [/\bH280\b|\bH281\b/gi, ['GHS04']],
+    [/\bH290\b|\bH314\b|\bH318\b/gi, ['GHS05']],
+    [/\bH300\b|\bH301\b|\bH310\b|\bH311\b|\bH330\b|\bH331\b/gi, ['GHS06']],
+    [/\bH302\b|\bH312\b|\bH315\b|\bH317\b|\bH319\b|\bH332\b|\bH335\b|\bH336\b/gi, ['GHS07']],
+    [/\bH304\b|\bH334\b|\bH340\b|\bH341\b|\bH350\b|\bH351\b|\bH360\b|\bH361\b|\bH362\b|\bH370\b|\bH371\b|\bH372\b|\bH373\b/gi, ['GHS08']],
+    [/\bH400\b|\bH410\b|\bH411\b|\bH412\b|\bH413\b/gi, ['GHS09']],
+  ];
+
+  const keywordRules: Array<[RegExp, GhsPictogramCode]> = [
     [/explosive|unstable explosive|mass explosion/i, 'GHS01'],
     [/flammable|fire|flash point|sparks|open flame|self-heating|self-reactive/i, 'GHS02'],
     [/oxidiz|oxidis/i, 'GHS03'],
@@ -503,7 +518,10 @@ function inferPictograms(hazards: string): GhsPictogramCode[] {
     [/aquatic|environment|long lasting effects to aquatic life/i, 'GHS09'],
   ];
 
-  const result = rules.filter(([pattern]) => pattern.test(hazards)).map(([, label]) => label);
+  const inferredFromHCodes = hCodeRules.flatMap(([pattern, codes]) => (pattern.test(hazards) ? codes : []));
+  const inferredFromKeywords = keywordRules.filter(([pattern]) => pattern.test(hazards)).map(([, label]) => label);
+  const result = [...explicitCodes, ...inferredFromHCodes, ...inferredFromKeywords];
+
   return normalizePictogramCodes(result.length > 0 ? result : ['GHS07']);
 }
 
@@ -588,34 +606,16 @@ function renderGhsPictogramList(codes: string[], variant: 'card' | 'mini' = 'car
 
 function renderGhsPictogram(code: GhsPictogramCode, variant: 'card' | 'mini') {
   const definition = GHS_PICTOGRAMS[code];
-  const sizeClass = variant === 'mini' ? ' ghs-svg--mini' : '';
+  const sizeClass = variant === 'mini' ? ' ghs-image--mini' : '';
   const wrapperClass = variant === 'mini' ? 'ghs-pictogram ghs-pictogram--mini' : 'ghs-pictogram';
-  const symbolMarkup = renderGhsSymbol(definition);
 
   return `
     <div class="${wrapperClass}" title="${escapeHtml(`${definition.code} · ${definition.label}`)}" aria-label="${escapeHtml(definition.label)}">
-      <svg class="ghs-svg${sizeClass}" viewBox="0 0 64 64" role="img" aria-hidden="true">
-        <polygon points="32,3 61,32 32,61 3,32" fill="#ffffff" stroke="#dc2626" stroke-width="3" />
-        ${symbolMarkup}
-      </svg>
-      <div class="ghs-pictogram__label">${escapeHtml(definition.shortLabel)}</div>
+      <img class="ghs-image${sizeClass}" src="${escapeHtml(definition.imageUrl)}" alt="${escapeHtml(definition.code)}" loading="eager" referrerpolicy="no-referrer" />
+      <div class="ghs-pictogram__label">${escapeHtml(definition.code)}</div>
+      <div class="ghs-pictogram__name">${escapeHtml(definition.label)}</div>
     </div>
   `;
-}
-
-function renderGhsSymbol(definition: GhsPictogramDefinition) {
-  switch (definition.code) {
-    case 'GHS04':
-      return '<rect x="16" y="30" width="32" height="4.5" rx="2" fill="#111827" /><rect x="44" y="27" width="4" height="10" rx="1" fill="#111827" />';
-    case 'GHS05':
-      return '<rect x="14" y="41" width="36" height="4" rx="1" fill="#111827" /><rect x="14" y="45" width="10" height="3" rx="1" fill="#111827" /><path d="M23 18l8 6-2 3-8-6zM35 14l9 7-2 3-9-7zM28 29l-2 5 4-2-2-3zm12-2l-2 5 4-2-2-3zm-2 8c2 0 4 1.5 4 3.5S40 42 38 42s-4-1.5-4-3.5 2-3.5 4-3.5z" fill="#111827" />';
-    case 'GHS08':
-      return '<circle cx="32" cy="21" r="7" fill="#111827" /><path d="M22 46c0-8 4-15 10-15s10 7 10 15H22z" fill="#111827" /><path d="M32 31l2.2 4.2 4.8.7-3.5 3.4.8 4.8-4.3-2.2-4.3 2.2.8-4.8-3.5-3.4 4.8-.7z" fill="#ffffff" />';
-    case 'GHS09':
-      return '<path d="M18 42c4-4 8-6 12-6-2 2-3 4-3 6 0 1 1 2 2 2-3 2-7 2-11-2z" fill="#111827" /><path d="M40 18c-1 7-3 12-7 16l5 0c4-4 5-9 6-16h-4z" fill="#111827" /><path d="M43 17l-7 17" stroke="#111827" stroke-width="2.4" stroke-linecap="round" />';
-    default:
-      return `<text x="32" y="37" text-anchor="middle" class="ghs-symbol-text" font-size="${definition.symbol.length > 2 ? 11 : 22}">${escapeHtml(definition.symbol)}</text>`;
-  }
 }
 
 function escapeRegex(value: string) {
