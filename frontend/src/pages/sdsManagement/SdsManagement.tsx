@@ -1,6 +1,7 @@
 import {
   Alert,
   Box,
+  Card,
   Chip,
   Dialog,
   DialogActions,
@@ -18,6 +19,8 @@ import {
   Add as AddIcon,
   Search as SearchIcon,
   Warning as WarningIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  Description as DescriptionIcon,
 } from '@mui/icons-material';
 import ChemRegButton from '../../components/ChemRegButton';
 import SdsDialog from './SdsDialog';
@@ -69,13 +72,15 @@ export default function SdsManagement() {
   } = useSdsManagement();
 
   return (
-    <Box>
+    <Box sx={{ display: 'grid', gap: 2.5 }}>
       <Header
         isLoading={isLoading}
         onRefresh={loadDocuments}
         onImport={openCreateDialog}
         onAdd={openCreateDialog}
       />
+
+      <QuickGuide />
 
       <FilterBar
         filterCounts={filterCounts}
@@ -85,7 +90,7 @@ export default function SdsManagement() {
         onStatusFilterChange={setStatusFilter}
       />
 
-      {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
 
       <ExpiredWarning count={filterCounts.expired} />
 
@@ -93,7 +98,7 @@ export default function SdsManagement() {
         rows={filteredDocuments}
         isLoading={isLoading}
         onView={openEditDialog}
-        onOpenFile={(docId, fileId, mode) => void handleOpenFile(docId, fileId, mode)}
+        onOpenFile={(docId, fileId, openMode) => void handleOpenFile(docId, fileId, openMode)}
         onGenerateMiniSds={handleGenerateMiniSds}
         onGenerateChemicalCard={handleGenerateChemicalCard}
       />
@@ -117,7 +122,7 @@ export default function SdsManagement() {
         onRefreshChemicalCardPrefill={refreshChemicalCardPrefill}
         onSubmit={() => void handleSubmit()}
         onPdfSelected={(e) => void handlePdfSelected(e)}
-        onOpenFile={(docId, fileId, mode) => void handleOpenFile(docId, fileId, mode)}
+        onOpenFile={(docId, fileId, openMode) => void handleOpenFile(docId, fileId, openMode)}
         onGenerateMiniSds={handleGenerateMiniSds}
         onOpenChemicalCardPreview={openChemicalCardPreview}
         onRunExtraction={(docId, fileId) => void runPdfExtraction(docId, fileId)}
@@ -143,27 +148,74 @@ type HeaderProps = {
 
 function Header({ isLoading, onRefresh, onImport, onAdd }: HeaderProps) {
   return (
-    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-      <Box>
-        <Typography sx={{ fontSize: 24, fontWeight: 900, color: 'text.primary' }}>SDS Management</Typography>
-        <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
-          Live SDS register backed by tenant-scoped backend documents and sections.
-        </Typography>
-      </Box>
-      <Stack direction="row" spacing={1}>
-        <ChemRegButton variant="outline" onClick={() => void onRefresh()} disabled={isLoading}>
-          <SyncIcon sx={{ fontSize: 16, mr: 0.5 }} />
-          Refresh
-        </ChemRegButton>
-        <ChemRegButton variant="outline" onClick={onImport}>
-          <ImportIcon sx={{ fontSize: 16, mr: 0.5 }} />
-          Import SDS PDF
-        </ChemRegButton>
-        <ChemRegButton variant="primary" onClick={onAdd}>
-          <AddIcon sx={{ fontSize: 16, mr: 0.5 }} />
-          Add SDS
-        </ChemRegButton>
+    <Card
+      sx={{
+        p: { xs: 2.25, md: 3 },
+        borderRadius: 3,
+        border: '1px solid rgba(59,130,246,0.10)',
+        background: 'linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(239,246,255,0.92) 100%)',
+        boxShadow: '0 18px 45px rgba(15, 23, 42, 0.08)',
+      }}
+    >
+      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', alignItems: { xs: 'stretch', lg: 'flex-start' } }}>
+        <Box>
+          <Chip label="SDS Workspace" size="small" sx={{ mb: 1.25, fontWeight: 700, bgcolor: 'rgba(29,78,216,0.08)', color: '#1d4ed8' }} />
+          <Typography sx={{ fontSize: 28, fontWeight: 900, color: 'text.primary', letterSpacing: '-0.02em' }}>SDS Management</Typography>
+          <Typography sx={{ mt: 0.75, fontSize: 13, lineHeight: 1.6, color: 'text.secondary', maxWidth: 720 }}>
+            Keep the original SDS PDF, turn it into an editable mini-SDS, and generate a GPV card from the same record. The workflow below is ordered to match how users actually work.
+          </Typography>
+        </Box>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <ChemRegButton variant="outline" onClick={() => void onRefresh()} disabled={isLoading}>
+            <SyncIcon sx={{ fontSize: 16, mr: 0.5 }} />
+            Refresh
+          </ChemRegButton>
+          <ChemRegButton variant="outline" onClick={onAdd}>
+            <AddIcon sx={{ fontSize: 16, mr: 0.5 }} />
+            Add manually
+          </ChemRegButton>
+          <ChemRegButton variant="primary" onClick={onImport}>
+            <ImportIcon sx={{ fontSize: 16, mr: 0.5 }} />
+            Start from PDF
+          </ChemRegButton>
+        </Stack>
       </Stack>
+    </Card>
+  );
+}
+
+function QuickGuide() {
+  return (
+    <Card sx={{ p: 2.5, borderRadius: 3, bgcolor: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.12)', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.04)' }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} useFlexGap>
+        <GuideStep
+          icon={<DescriptionIcon sx={{ fontSize: 18, color: '#1d4ed8' }} />}
+          title="1. Attach the SDS PDF"
+          body="ChemReg keeps the source file for preview and download."
+        />
+        <GuideStep
+          icon={<AutoAwesomeIcon sx={{ fontSize: 18, color: '#0f766e' }} />}
+          title="2. Let ChemReg prefill the draft"
+          body="Extraction fills the key sections so the user fixes only what matters."
+        />
+        <GuideStep
+          icon={<DescriptionIcon sx={{ fontSize: 18, color: '#7c3aed' }} />}
+          title="3. Review, save, and export"
+          body="The saved SDS can then power mini-SDS and GPV card output."
+        />
+      </Stack>
+    </Card>
+  );
+}
+
+function GuideStep({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+      <Box sx={{ mt: 0.25 }}>{icon}</Box>
+      <Box>
+        <Typography sx={{ fontSize: 13, fontWeight: 800 }}>{title}</Typography>
+        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{body}</Typography>
+      </Box>
     </Stack>
   );
 }
@@ -184,34 +236,40 @@ function FilterBar({
   onStatusFilterChange,
 }: FilterBarProps) {
   return (
-    <Stack direction="row" spacing={1} sx={{ mt: 3, alignItems: 'center', flexWrap: 'wrap' }} useFlexGap>
-      <Chip label={`${filterCounts.all} Total SDSs`} sx={chipBaseSx('var(--gpv-gray-100)')} />
-      <Chip label={`${filterCounts.current} Current`} sx={chipBaseSx('rgba(46, 164, 79, 0.1)', '#16a34a')} />
-      <Chip label={`${filterCounts.expiring_soon} Expiring (30 days)`} sx={chipBaseSx('rgba(245, 158, 11, 0.12)', '#b45309')} />
-      <Chip label={`${filterCounts.expired} Expired`} sx={chipBaseSx('rgba(225, 29, 72, 0.1)', '#be123c')} />
-      <Box sx={{ flex: 1 }} />
-      <Box sx={{ position: 'relative', width: 220 }}>
-        <SearchIcon sx={{ position: 'absolute', left: 10, top: 11, fontSize: 18, color: 'text.secondary', zIndex: 1 }} />
-        <TextField
-          size="small"
-          placeholder="Search SDS..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          sx={{ width: 220, '& .MuiInputBase-input': { pl: 4 } }}
-        />
-      </Box>
-      <Select
-        size="small"
-        value={statusFilter}
-        onChange={(e) => onStatusFilterChange(e.target.value as 'all' | SdsStatus)}
-        sx={{ minWidth: 120 }}
-      >
-        <MenuItem value="all">All</MenuItem>
-        <MenuItem value="current">Current</MenuItem>
-        <MenuItem value="expiring_soon">Expiring</MenuItem>
-        <MenuItem value="expired">Expired</MenuItem>
-      </Select>
-    </Stack>
+    <Card sx={{ p: 2, borderRadius: 3, border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 8px 24px rgba(15, 23, 42, 0.03)' }}>
+      <Stack direction={{ xs: 'column', lg: 'row' }} spacing={1.5} sx={{ alignItems: { xs: 'stretch', lg: 'center' } }}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }} useFlexGap>
+          <Chip label={`${filterCounts.all} Total SDSs`} sx={chipBaseSx('var(--gpv-gray-100)')} />
+          <Chip label={`${filterCounts.current} Current`} sx={chipBaseSx('rgba(46, 164, 79, 0.1)', '#16a34a')} />
+          <Chip label={`${filterCounts.expiring_soon} Expiring soon`} sx={chipBaseSx('rgba(245, 158, 11, 0.12)', '#b45309')} />
+          <Chip label={`${filterCounts.expired} Expired`} sx={chipBaseSx('rgba(225, 29, 72, 0.1)', '#be123c')} />
+        </Stack>
+        <Box sx={{ flex: 1 }} />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', lg: 'auto' } }}>
+          <Box sx={{ position: 'relative', width: { xs: '100%', sm: 260 } }}>
+            <SearchIcon sx={{ position: 'absolute', left: 10, top: 11, fontSize: 18, color: 'text.secondary', zIndex: 1 }} />
+            <TextField
+              size="small"
+              placeholder="Search by product, CAS, supplier, or SDS ID"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              sx={{ width: '100%', '& .MuiInputBase-input': { pl: 4 } }}
+            />
+          </Box>
+          <Select
+            size="small"
+            value={statusFilter}
+            onChange={(e) => onStatusFilterChange(e.target.value as 'all' | SdsStatus)}
+            sx={{ minWidth: 170 }}
+          >
+            <MenuItem value="all">All statuses</MenuItem>
+            <MenuItem value="current">Current</MenuItem>
+            <MenuItem value="expiring_soon">Expiring soon</MenuItem>
+            <MenuItem value="expired">Expired</MenuItem>
+          </Select>
+        </Stack>
+      </Stack>
+    </Card>
   );
 }
 
@@ -221,20 +279,22 @@ function ExpiredWarning({ count }: { count: number }) {
   return (
     <Box
       sx={{
-        mt: 2,
         px: 2,
         py: 1.5,
         bgcolor: 'rgba(225, 29, 72, 0.08)',
-        borderRadius: 'var(--radius-md)',
+        borderRadius: 3,
+        border: '1px solid rgba(225, 29, 72, 0.12)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 2,
+        flexWrap: 'wrap',
       }}
     >
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <WarningIcon sx={{ fontSize: 18, color: '#be123c' }} />
         <Typography sx={{ fontSize: 13, color: '#be123c', fontWeight: 500 }}>
-          {count} SDS expired – associated chemical operations are restricted.
+          {count} SDS document{count === 1 ? '' : 's'} expired. Review them before using those chemicals operationally.
         </Typography>
       </Stack>
       <Typography sx={{ fontSize: 13, color: '#be123c', fontWeight: 700 }}>
