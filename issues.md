@@ -1,5 +1,18 @@
 # ChemReg GitHub Issues Draft
 
+## Current workflow status
+
+Need draftid on seotud `openspec/changes/close-mvp-readiness-gaps/tasks.md` change'iga.
+
+- Issue 1 — **done in repo docs**, valmis GitHubis sulgeda pärast lõplikku ülevaatust
+- Issue 2 — **in progress**, auth validation hardening tehtud; role-matrix coverage on veel lahti
+- Issue 3 — **done for current MVP slice**, live SDS + chemical registry olemas
+- Issue 4 — **in progress**, inventory live voog olemas; manifest/export ots lahti
+- Issue 5 — **todo**, risk workflow on järgmine suurem päris tööots
+- Issue 6 — **todo**, label/report backend output puudub
+- Issue 7 — **in progress**, testid ja gate'id paranesid; E2E + clean deploy rehearsal puudu
+- Issue 8 — **in progress**, jooksvad build/test kontrollid tehtud; final readiness reconciliation jääb pärast ülejäänud workstream'e
+
 Allolevad issue draftid on tuletatud failist `openspec/changes/close-mvp-readiness-gaps/tasks.md`.
 
 Soovitus:

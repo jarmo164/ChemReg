@@ -7,8 +7,9 @@
 ## 2. Authentication and access control
 - [x] 2.1 Replace the current simplified frontend session model with real access/refresh token handling.
 - [x] 2.2 Enforce authorization consistently in backend controllers/services, not only in UI routing.
-- [ ] 2.3 Implement role matrix coverage for Org Admin, EHS Manager, Site Manager, User, Auditor, and Supplier where in MVP scope.
-- [x] 2.4 Define tenant/site/location scoping rules and test them against direct-object access attempts.
+- [x] 2.3 Add concrete login/registration validation rules and field-level feedback in frontend and backend contracts.
+- [ ] 2.4 Implement role matrix coverage for Org Admin, EHS Manager, Site Manager, User, Auditor, and Supplier where in MVP scope.
+- [x] 2.5 Define tenant/site/location scoping rules and test them against direct-object access attempts.
 
 ## 3. SDS and chemical registry core
 - [x] 3.1 Implement SDS document entities, file storage contract, upload flow, and version management.
@@ -38,11 +39,12 @@
 
 ## 7. Quality and release readiness
 - [ ] 7.1 Add backend unit + integration tests for auth, authorization, SDS, inventory, and risk workflows.
-- [x] 7.2 Add frontend tests for login/session handling and critical module happy paths.
+- [x] 7.2 Add frontend tests for login/session handling, validation helpers, and critical overview flows.
 - [ ] 7.3 Add at least one E2E suite for login -> SDS/product -> inventory -> risk happy path.
 - [x] 7.4 Update CI so tests and builds are mandatory gates before deploy.
 - [x] 7.5 Add environment setup, secrets, backup/recovery, and deployment/runbook documentation.
-- [ ] 7.6 Verify staging or production-like deployment with a clean environment rehearsal.
+- [x] 7.6 Add graceful dependency-outage handling for API/database failure paths.
+- [ ] 7.7 Verify staging or production-like deployment with a clean environment rehearsal.
 
 ## 8. Verification
 - [x] 8.1 Reconcile README, wiki, and development documentation so they tell the same truth.

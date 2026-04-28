@@ -3,6 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import ChemRegButton from '../components/ChemRegButton';
 import Input from '../components/Input';
 import { register } from '../api/auth';
+import { hasFieldErrors, registerServerFieldErrors, validateRegisterForm, type RegisterField } from '../utils/authValidation';
+
+type RegisterFieldErrors = Partial<Record<RegisterField, string>>;
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -10,31 +13,41 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  const clearFieldError = (field: RegisterField) => {
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    const nextFieldErrors = validateRegisterForm({
+      name,
+      email,
+      password,
+      confirmPassword,
+    });
+    setFieldErrors(nextFieldErrors);
+    if (hasFieldErrors(nextFieldErrors)) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await register(name, email, password);
+      await register(name.trim(), email.trim(), password);
       navigate('/login', { state: { message: 'Account created successfully. Please sign in.' } });
     } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'An error occurred during registration');
+      const serverFieldErrors = registerServerFieldErrors(err);
+      if (hasFieldErrors(serverFieldErrors)) {
+        setFieldErrors((current) => ({ ...current, ...serverFieldErrors }));
+      }
+      const nextError = err as Error;
+      setError(nextError.message || 'An error occurred during registration');
     } finally {
       setIsLoading(false);
     }
@@ -47,9 +60,9 @@ const Register = () => {
           Create Account
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
               {error}
             </div>
           )}
@@ -59,8 +72,12 @@ const Register = () => {
             label="Full Name"
             type="text"
             value={name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setName(e.target.value);
+              clearFieldError('name');
+            }}
             placeholder="Enter your full name"
+            error={fieldErrors.name}
             required
           />
 
@@ -69,8 +86,12 @@ const Register = () => {
             label="Email"
             type="email"
             value={email}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setEmail(e.target.value);
+              clearFieldError('email');
+            }}
             placeholder="Enter your email"
+            error={fieldErrors.email}
             required
           />
 
@@ -79,8 +100,13 @@ const Register = () => {
             label="Password"
             type="password"
             value={password}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setPassword(e.target.value);
+              clearFieldError('password');
+            }}
             placeholder="Create a password"
+            error={fieldErrors.password}
+            helperText="Vähemalt 8 tähemärki."
             required
           />
 
@@ -89,8 +115,12 @@ const Register = () => {
             label="Confirm Password"
             type="password"
             value={confirmPassword}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setConfirmPassword(e.target.value);
+              clearFieldError('confirmPassword');
+            }}
             placeholder="Confirm your password"
+            error={fieldErrors.confirmPassword}
             required
           />
           <ChemRegButton type="submit" className="w-full" disabled={isLoading}>

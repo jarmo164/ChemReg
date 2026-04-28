@@ -8,6 +8,7 @@ import {
   updateAuthTokens,
 } from '../auth/auth';
 import type { TokenRefreshResponse } from './auth';
+import { toApiError, toNetworkError } from './errors';
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -25,18 +26,7 @@ function serializeUrl(params: object): Record<string, string> {
 }
 
 async function handleErrors(response: Response): Promise<never> {
-  let errorMessage = 'Request failed';
-
-  try {
-    const errorData = await response.json();
-    errorMessage = errorData.message || errorData.error || errorMessage;
-  } catch {
-    errorMessage = response.statusText || errorMessage;
-  }
-
-  const error = new Error(errorMessage) as Error & { status: number };
-  error.status = response.status;
-  throw error;
+  throw await toApiError(response);
 }
 
 function buildHeaders(includeJsonContentType = true): HeadersInit {
@@ -63,12 +53,19 @@ async function refreshAccessToken(): Promise<boolean> {
     return false;
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-    method: 'POST',
-    headers: buildHeaders(),
-    credentials: 'include',
-    body: JSON.stringify({ refreshToken }),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: buildHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ refreshToken }),
+    });
+  } catch {
+    clearAuthSession();
+    return false;
+  }
 
   if (!response.ok) {
     clearAuthSession();
@@ -128,28 +125,32 @@ async function request<T>(
     requestParams.body = JSON.stringify(dto);
   }
 
-  let response = await fetch(url, requestParams);
+  try {
+    let response = await fetch(url, requestParams);
 
-  if (response.status === 401 && retryOnUnauthorized && !appendUrl.startsWith('/api/auth/')) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      response = await fetch(url, {
-        ...requestParams,
-        headers: buildHeaders(),
-      });
+    if (response.status === 401 && retryOnUnauthorized && !appendUrl.startsWith('/api/auth/')) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        response = await fetch(url, {
+          ...requestParams,
+          headers: buildHeaders(),
+        });
+      }
     }
-  }
 
-  if (!response.ok) {
-    await handleErrors(response);
-  }
+    if (!response.ok) {
+      await handleErrors(response);
+    }
 
-  const text = await response.text();
-  if (!text) {
-    return {} as T;
-  }
+    const text = await response.text();
+    if (!text) {
+      return {} as T;
+    }
 
-  return JSON.parse(text) as T;
+    return JSON.parse(text) as T;
+  } catch (error) {
+    throw toNetworkError(error);
+  }
 }
 
 export function apiGet<T>(appendUrl: string, urlParams?: object): Promise<T> {

@@ -13,6 +13,14 @@ ChemReg SHALL use a real authenticated session model and SHALL enforce authoriza
 - **THEN** the backend SHALL reject the request
 - **AND** direct object access by guessed IDs SHALL not bypass tenant, site, or role rules
 
+### Requirement: The system SHALL validate authentication input consistently
+ChemReg SHALL validate authentication and registration input both in the UI and at the backend contract boundary.
+
+#### Scenario: Login and registration reject malformed credentials early
+- **WHEN** a user enters an invalid email, blank required field, or too-short password in login or registration
+- **THEN** the frontend SHALL show field-specific validation feedback before submitting when possible
+- **AND** the backend SHALL still reject malformed auth payloads with a structured validation error response
+
 ### Requirement: The system SHALL support MVP role-scoped access
 ChemReg SHALL support the MVP role matrix needed for chemical management workflows.
 

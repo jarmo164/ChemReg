@@ -3,6 +3,7 @@ package com.chemreg.chemreg.auth.controller;
 import com.chemreg.chemreg.auth.dto.*;
 import com.chemreg.chemreg.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,7 +27,7 @@ public class AuthController {
 
     @Operation(security = {})
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest request) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
     }
 

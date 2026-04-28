@@ -13,6 +13,14 @@ ChemReg SHALL not be considered ready unless its critical workflows are covered 
 - **THEN** the repo SHALL provide environment, secrets, migration, backup/recovery, and rollback guidance
 - **AND** operators SHALL be able to rehearse deployment on a clean environment
 
+### Requirement: The product SHALL fail gracefully when dependencies are unavailable
+ChemReg SHALL respond predictably when its database or backend dependencies are unavailable.
+
+#### Scenario: API and data-store outages produce operator-friendly feedback
+- **WHEN** the frontend cannot reach the API or the backend loses database access
+- **THEN** the system SHALL return a consistent service-unavailable style error contract
+- **AND** the UI SHALL show an actionable message instead of crashing or hanging silently
+
 ### Requirement: The product SHALL expose only release-ready critical paths
 Placeholder or seeded demo-only experiences SHALL not remain in critical product routes presented as completed functionality.
 

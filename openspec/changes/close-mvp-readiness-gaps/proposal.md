@@ -5,7 +5,7 @@ ChemReg has a strong product direction and a broad target-state document, but th
 Right now the biggest gaps are structural, not cosmetic:
 
 1. **Architecture drift**: the large development document describes a NestJS-based platform, while the live repo is built on Spring Boot + React. The team needs one real source of truth before more feature work lands.
-2. **Core workflow incompleteness**: the documented MVP expects SDS, chemical registry, inventory, risk approvals, labels, and reports. In the repo, only a thin auth/user/chemical API slice is real; several frontend modules are still placeholder or demo-driven.
+2. **Core workflow incompleteness**: the documented MVP expects SDS, chemical registry, inventory, risk approvals, labels, and reports. The repo now has real auth, SDS, chemical, site/location, and inventory slices, but several routes still need hardening, graceful failure behavior, or explicit MVP deferral instead of demo-like presentation.
 3. **Release-readiness weakness**: test coverage, CI quality gates, security hardening, object storage/search/background jobs, and deployment confidence are not yet at the level needed for a trustworthy pilot or production rollout.
 
 If these gaps remain open, the product may look promising in a walkthrough but will stay fragile in real customer use.
@@ -31,8 +31,8 @@ If these gaps remain open, the product may look promising in a walkthrough but w
 - settle environment contracts, migrations, storage integrations, and API conventions
 
 ### Phase 2 — Finish the chemical management happy path
-- make SDS, product registry, and inventory flows fully real end-to-end
-- remove placeholder/demo-only UI from critical paths
+- make SDS, product registry, inventory, dashboard, and alert views fully real end-to-end
+- remove placeholder/demo-only UI from critical paths or explicitly defer unfinished modules
 - ensure labels and reports are generated from real persisted data
 
 ### Phase 3 — Finish controlled workflows and readiness

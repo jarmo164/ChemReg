@@ -16,6 +16,9 @@ Praegune `test` haru ei ole enam ainult karkass — siin on mitu päris MVP voog
 - GPV A4 chemical card preview/generation frontendis
 - site + hierarchical location CRUD
 - inventory item CRUD ja live inventory register
+- live dashboard + urgent alerts, mis arvutatakse päris chemical/SDS/inventory andmetest
+- auth vormide field-level valideerimine login/register voogudes
+- viisakam API/DB outage handling frontendis ja backendis
 - Docker Compose lokaalne jooksutamine
 - GitHub Actions deploy pipeline
 
@@ -139,7 +142,8 @@ Minimaalselt peavad olemas olema:
 
 Kontrollitud viimases ringis:
 
-- backend: `./gradlew test --tests com.chemreg.chemreg.sds.service.SdsPdfExtractionServiceTest`
+- backend: `./gradlew test`
+- frontend: `npm test -- --watchAll=false`
 - frontend: `npm run build`
 
 Aga täielik MVP kvaliteedibaar vajab endiselt:
