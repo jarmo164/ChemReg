@@ -5,12 +5,14 @@ import com.chemreg.chemreg.auth.repository.UserCredentialRepository;
 import com.chemreg.chemreg.common.enums.UserRole;
 import com.chemreg.chemreg.common.enums.UserStatus;
 import com.chemreg.chemreg.common.exception.BadRequestException;
+import com.chemreg.chemreg.common.exception.ConflictException;
 import com.chemreg.chemreg.common.exception.ResourceNotFoundException;
 import com.chemreg.chemreg.common.security.AuthorizationRules;
 import com.chemreg.chemreg.common.security.CurrentAccessContext;
 import com.chemreg.chemreg.tenant.entity.Tenant;
 import com.chemreg.chemreg.tenant.repository.TenantRepository;
 import com.chemreg.chemreg.user.dto.CreateUserRequest;
+import com.chemreg.chemreg.user.dto.UpdateUserRequest;
 import com.chemreg.chemreg.user.dto.UserResponse;
 import com.chemreg.chemreg.user.entity.User;
 import com.chemreg.chemreg.user.repository.UserRepository;
@@ -20,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -115,5 +119,25 @@ public class UserService {
 
     private String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
+    }
+
+    public UserResponse updateUser(UUID id, UpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        String newName = request.name().trim();
+        String newEmail = normalizeEmail(request.email());
+
+        if (!user.getEmail().equalsIgnoreCase(newEmail)
+                && userRepository.existsByEmail(newEmail)) {
+            throw new ConflictException("Email is already in use");
+        }
+
+        user.setName(newName);
+        user.setEmail(newEmail);
+
+        User savedUser = userRepository.save(user);
+
+        return toUserResponse(savedUser);
     }
 }
