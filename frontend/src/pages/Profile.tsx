@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Stack, TextField, Typography } from "@mui/material";
 import { getAuthUser, setAuthUser, type AuthUser } from "../auth/auth";
+import { updateUser } from "../api/user";
+import { validateName, validateEmail } from "../utils/validators";
 
 export default function Profile() {
   const initialUser = useMemo(() => getAuthUser(), []);
@@ -8,6 +10,8 @@ export default function Profile() {
   const [name, setName] = useState(initialUser?.name ?? "");
   const [email, setEmail] = useState(initialUser?.email ?? "");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   if (!user) {
     return (
@@ -17,17 +21,56 @@ export default function Profile() {
     );
   }
 
-  const handleSave = () => {
-    const next: AuthUser = {
-      ...user,
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-    };
-    setAuthUser(next);
-    setUser(next);
+const handleSave = async () => {
+  const nextName = name.trim();
+  const nextEmail = email.trim().toLowerCase();
+
+  setError("");
+  setSaved(false);
+
+  const nameValidationError = validateName(nextName);
+  if (nameValidationError) {
+    setError(nameValidationError);
+    return;
+  }
+
+  const emailValidationError = validateEmail(nextEmail);
+  if (emailValidationError) {
+    setError(emailValidationError);
+    return;
+  }
+
+  const hasChanges =
+    nextName !== user.name ||
+    nextEmail !== user.email.toLowerCase();
+
+  if (!hasChanges) {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
-  };
+    return;
+  }
+
+  setSaving(true);
+
+  try {
+    const updatedUser = await updateUser(user.id, {
+      name: nextName,
+      email: nextEmail,
+    });
+
+    setAuthUser(updatedUser);
+    setUser(updatedUser);
+    setName(updatedUser.name);
+    setEmail(updatedUser.email);
+    setSaved(true);
+
+    window.setTimeout(() => setSaved(false), 2000);
+  } catch (error) {
+    setError(error instanceof Error ? error.message : "Could not save profile changes.");
+  } finally {
+    setSaving(false);
+  }
+};
 
   return (
     <Box>
@@ -43,18 +86,25 @@ export default function Profile() {
           <Stack spacing={2}>
             {saved ? <Alert severity="success">Saved</Alert> : null}
 
-            <TextField
-              label="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              fullWidth
-            />
+        <TextField
+          label="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          fullWidth
+          disabled={saving}
+          error={Boolean(error) && error.toLowerCase().includes("name")}
+          helperText={error.toLowerCase().includes("name") ? error : ""}
+        />
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          fullWidth
+          disabled={saving}
+          error={Boolean(error) && error.toLowerCase().includes("email")}
+          helperText={error.toLowerCase().includes("email") ? error : ""}
+        />
 
             <Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>User ID</Typography>
@@ -62,14 +112,15 @@ export default function Profile() {
             </Box>
 
             <Box>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSave}
-                sx={{ textTransform: "none", fontWeight: 800 }}
-              >
-                Save changes
-              </Button>
+<Button
+  variant="contained"
+  color="primary"
+  onClick={handleSave}
+  disabled={saving}
+  sx={{ textTransform: "none", fontWeight: 800 }}
+>
+  {saving ? "Saving..." : "Save changes"}
+</Button>
             </Box>
           </Stack>
         </CardContent>
